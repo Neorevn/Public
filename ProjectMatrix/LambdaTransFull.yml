@@ -1,0 +1,689 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Full stack to handle MP3 transcription"
+
+Parameters:
+  TranscriptionBucketName:
+    Type: String
+    Description: Name of the bucket for uploads and transcription output
+    Default: "asaftest-transcribe-bucket-prod-2025" # Changed default to be more unique
+
+Resources:
+  # S3 Bucket for uploads and transcripts
+  TranscriptionBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref TranscriptionBucketName
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - "*"
+            AllowedMethods:
+              - GET
+              - PUT
+              - POST
+              - DELETE
+              - HEAD
+            AllowedOrigins:
+              - "*" # In production, restrict this to your specific frontend domain(s)
+            ExposedHeaders:
+              - ETag
+            MaxAge: 3000
+      NotificationConfiguration:
+        LambdaConfigurations:
+          - Event: s3:ObjectCreated:*
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: uploads/
+                  - Name: suffix
+                    Value: .mp3
+            Function: !GetAtt TranscribeAudioFunction.Arn
+    DependsOn: AllowS3ToInvokeLambda
+
+  # Custom Resource to create initial "folders" (object prefixes) in the S3 bucket
+  BucketFolders:
+    Type: AWS::CloudFormation::CustomResource
+    Properties:
+      ServiceToken: !GetAtt CreateBucketFoldersFunction.Arn
+      BucketName: !Ref TranscriptionBucketName
+      Folders:
+        - uploads/
+        - transcripts/json/
+        - transcripts/text/
+    DependsOn: TranscriptionBucket
+
+  # Lambda Function to create the initial S3 "folders"
+  CreateBucketFoldersFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: "createTranscriptionBucketFolders"
+      Runtime: python3.9
+      Handler: index.lambda_handler
+      Role: !GetAtt CreateBucketFoldersRole.Arn
+      Timeout: 60
+      Code:
+        ZipFile: |
+          import boto3
+          import cfnresponse
+          import logging
+
+          s3 = boto3.client('s3')
+          logger = logging.getLogger()
+          logger.setLevel(logging.INFO)
+
+          def lambda_handler(event, context):
+              logger.info(f"Received event: {event}")
+              props = event.get('ResourceProperties')
+              bucket_name = props.get('BucketName')
+              folders = props.get('Folders', [])
+              status = cfnresponse.SUCCESS
+              response_data = {}
+              physical_resource_id = event.get('PhysicalResourceId', f"custom-resource-{bucket_name}")
+
+              try:
+                  if event['RequestType'] == 'Create':
+                      for folder in folders:
+                          logger.info(f"Creating folder: s3://{bucket_name}/{folder}")
+                          s3.put_object(Bucket=bucket_name, Key=folder)
+                  elif event['RequestType'] == 'Delete':
+                      # No need to delete folders explicitly for CloudFormation Delete events in S3
+                      # S3 bucket deletion handles nested objects.
+                      logger.info("Delete request received. No explicit action needed for S3 folders.")
+                  elif event['RequestType'] == 'Update':
+                      # For simplicity, we won't handle updates to folders for now.
+                      # Re-creating or deleting objects in S3 is idempotent for these prefixes.
+                      logger.info("Update request received. Attempting to ensure folders exist.")
+                      for folder in folders:
+                          logger.info(f"Ensuring folder: s3://{bucket_name}/{folder} exists on update.")
+                          s3.put_object(Bucket=bucket_name, Key=folder)
+              except Exception as e:
+                  logger.error(f"Error in CreateBucketFoldersFunction: {e}")
+                  status = cfnresponse.FAILED
+                  response_data['Error'] = str(e)
+              finally:
+                  cfnresponse.send(event, context, status, response_data, physical_resource_id)
+    DependsOn: CreateBucketFoldersRole
+
+  # IAM Role for the CreateBucketFoldersFunction Lambda
+  CreateBucketFoldersRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Path: "/"
+      Policies:
+        - PolicyName: "CreateBucketFoldersPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:ListBucket
+                Resource:
+                  - !Sub "arn:aws:s3:::${TranscriptionBucketName}/*"
+                  - !Sub "arn:aws:s3:::${TranscriptionBucketName}"
+              - Effect: Allow
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/createTranscriptionBucketFolders:*"
+
+  # IAM Role for the TranscribeAudioFunction, UploadFileFunction, and FetchTranscriptFunction Lambdas
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        - PolicyName: "LambdaExecutionPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "*"
+              - Effect: "Allow"
+                Action:
+                  - "s3:GetObject"
+                  - "s3:PutObject"
+                  - "s3:DeleteObject"
+                Resource: !Sub "arn:aws:s3:::${TranscriptionBucketName}/*"
+              - Effect: "Allow"
+                Action:
+                  - "s3:ListBucket"
+                Resource: !Sub "arn:aws:s3:::${TranscriptionBucketName}"
+              - Effect: "Allow"
+                Action:
+                  - "transcribe:StartTranscriptionJob"
+                  - "transcribe:GetTranscriptionJob"
+                  - "transcribe:DeleteTranscriptionJob"
+                Resource: "*"
+
+  # Lambda Function to initiate and monitor transcription jobs
+  TranscribeAudioFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: "transcribeAudioFunction"
+      Runtime: python3.9
+      Handler: index.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 300
+      MemorySize: 256
+      Environment:
+        Variables:
+          OUTPUT_BUCKET_NAME: !Ref TranscriptionBucketName
+      Code:
+        ZipFile: |
+          import boto3
+          import urllib.parse
+          import os
+          import time
+          import json
+          import logging
+          import re # Import the regex module
+
+          s3 = boto3.client('s3')
+          transcribe = boto3.client('transcribe')
+          OUTPUT_BUCKET_NAME = os.environ['OUTPUT_BUCKET_NAME']
+          UPLOAD_PREFIX = "uploads"
+          TRANSCRIPT_OUTPUT_PREFIX = "transcripts/json"
+          TRANSCRIPT_TEXT_PREFIX = "transcripts/text"
+
+          logger = logging.getLogger()
+          logger.setLevel(logging.INFO)
+
+          def lambda_handler(event, context):
+              logger.info(f"Received S3 event: {json.dumps(event)}")
+              if not event['Records']:
+                  logger.warning("No records found in S3 event.")
+                  return {'statusCode': 200, 'body': 'No S3 records to process.'}
+
+              bucket_name = event['Records'][0]['s3']['bucket']['name']
+              file_key = urllib.parse.unquote_plus(event['Records'][0]['s3']['object']['key'], encoding='utf-8')
+
+              # Validate that the file is an MP3 and in the uploads/ prefix
+              if not file_key.lower().startswith(f"{UPLOAD_PREFIX}/") or not file_key.lower().endswith('.mp3'):
+                  logger.info(f"Skipping non-MP3 file or file not in upload prefix: {file_key}")
+                  return {'statusCode': 200, 'body': 'Only MP3 files in the uploads/ prefix are processed.'}
+
+              base_filename = os.path.basename(file_key) # e.g., 'My Way Ringtone.mp3'
+
+              # Sanitize the filename for the transcription job name
+              # AWS Transcribe job names allow alphanumeric, '.', '_', '-'
+              # Replace any other characters with an underscore
+              sanitized_job_name_part = re.sub(r'[^0-9a-zA-Z._-]', '_', base_filename)
+              # Prepend a unique prefix and truncate to a safe length (max 200 for Transcribe, but good to keep it reasonable)
+              job_name = f"lambda-transcribe-{sanitized_job_name_part[:150]}-{int(time.time())}"
+              # Ensure the job name is truly unique across retries/multiple uploads
+              job_name = re.sub(r'__+', '_', job_name) # Replace multiple underscores with one
+              job_name = job_name.strip('_') # Remove leading/trailing underscores if any
+              
+              media_uri = f"s3://{bucket_name}/{file_key}"
+
+              try:
+                  logger.info(f"Attempting to start transcription job: {job_name} for media URI: {media_uri}")
+                  transcribe.start_transcription_job(
+                      TranscriptionJobName=job_name,
+                      Media={'MediaFileUri': media_uri},
+                      OutputBucketName=OUTPUT_BUCKET_NAME,
+                      OutputKey=f"{TRANSCRIPT_OUTPUT_PREFIX}/{base_filename}.json", # Save JSON transcript
+                      MediaFormat='mp3',
+                      LanguageCode='en-US' # You might want to parameterize this for other languages
+                  )
+                  logger.info(f"Started transcription job: {job_name}")
+
+                  # Polling for job completion (can be replaced by Transcribe completion events for longer jobs)
+                  while True:
+                      job = transcribe.get_transcription_job(TranscriptionJobName=job_name)
+                      status = job['TranscriptionJob']['TranscriptionJobStatus']
+                      logger.info(f"Transcription job {job_name} status: {status}")
+                      if status in ['COMPLETED', 'FAILED']:
+                          break
+                      time.sleep(5) # Poll every 5 seconds
+
+                  if status == 'FAILED':
+                      failure_reason = job['TranscriptionJob'].get('FailureReason', 'Unknown reason')
+                      logger.error(f"Transcription job {job_name} failed for {file_key}. Reason: {failure_reason}")
+                      # Clean up the original file even if transcription fails
+                      s3.delete_object(Bucket=bucket_name, Key=file_key)
+                      transcribe.delete_transcription_job(TranscriptionJobName=job_name)
+                      return {'statusCode': 500, 'body': f"Transcription failed: {failure_reason}"}
+
+                  # If completed, fetch JSON, extract text, save as .txt, and clean up
+                  result_json_key = f"{TRANSCRIPT_OUTPUT_PREFIX}/{base_filename}.json"
+                  logger.info(f"Fetching JSON transcript from s3://{OUTPUT_BUCKET_NAME}/{result_json_key}")
+                  result = s3.get_object(Bucket=OUTPUT_BUCKET_NAME, Key=result_json_key)
+                  transcript_data = json.loads(result['Body'].read())
+                  text = transcript_data['results']['transcripts'][0]['transcript']
+
+                  # Save the plain text transcript
+                  text_file_key = f"{TRANSCRIPT_TEXT_PREFIX}/{os.path.splitext(base_filename)[0]}.txt" # base_filename without extension
+                  logger.info(f"Saving plain text transcript to s3://{OUTPUT_BUCKET_NAME}/{text_file_key}")
+                  s3.put_object(
+                      Bucket=OUTPUT_BUCKET_NAME,
+                      Key=text_file_key,
+                      Body=text.encode('utf-8'),
+                      ContentType='text/plain'
+                  )
+                  
+                  # Cleanup: Delete intermediate JSON and original MP3
+                  logger.info(f"Deleting intermediate JSON: s3://{OUTPUT_BUCKET_NAME}/{result_json_key}")
+                  s3.delete_object(Bucket=OUTPUT_BUCKET_NAME, Key=result_json_key)
+                  logger.info(f"Deleting original MP3: s3://{bucket_name}/{file_key}")
+                  s3.delete_object(Bucket=bucket_name, Key=file_key)
+                  logger.info(f"Deleting transcription job: {job_name}")
+                  transcribe.delete_transcription_job(TranscriptionJobName=job_name)
+
+                  return {'statusCode': 200, 'body': f"Transcript saved and cleanup complete for: {file_key}"}
+
+              except Exception as e:
+                  logger.error(f"Error processing {file_key}: {e}", exc_info=True) # Log full traceback
+                  return {'statusCode': 500, 'body': f"Error processing {file_key}: {str(e)}"}
+
+  # Lambda Function for handling uploads via API Gateway
+  UploadFileFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: "uploadFileFunction"
+      Runtime: python3.9
+      Handler: index.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 30
+      MemorySize: 128
+      Environment:
+        Variables:
+          UPLOAD_BUCKET_NAME: !Ref TranscriptionBucketName
+          UPLOAD_PREFIX: "uploads"
+      Code:
+        ZipFile: |
+          import boto3
+          import json
+          import base64
+          import os
+          import logging
+          import mimetypes
+
+          s3 = boto3.client('s3')
+          UPLOAD_BUCKET_NAME = os.environ['UPLOAD_BUCKET_NAME']
+          UPLOAD_PREFIX = os.environ['UPLOAD_PREFIX']
+
+          logger = logging.getLogger()
+          logger.setLevel(logging.INFO)
+
+          def lambda_handler(event, context):
+              logger.info(f"Received API Gateway upload event: {json.dumps(event)}")
+              try:
+                  if "body" not in event or not event["body"]:
+                      logger.error("Missing request body")
+                      return {
+                          "statusCode": 400,
+                          "headers": { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
+                          "body": json.dumps({"error": "Missing request body"})
+                      }
+
+                  body = json.loads(event["body"])
+                  file_content_b64 = body.get("fileContent")
+                  file_name = body.get("fileName")
+                  file_type = body.get("fileType") # This is often client-provided, use mimetypes for robustness
+
+                  if not file_content_b64 or not file_name:
+                      logger.error("Missing fileContent or fileName in body")
+                      return {
+                          "statusCode": 400,
+                          "headers": { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
+                          "body": json.dumps({"error": "Missing fileContent or fileName in body"})
+                      }
+                  
+                  # Use mimetypes to determine the correct content type for S3
+                  # Fallback to provided file_type or a default if mimetypes can't guess
+                  s3_content_type, _ = mimetypes.guess_type(file_name)
+                  if not s3_content_type:
+                      s3_content_type = file_type if file_type else 'application/octet-stream' # Default if no guess
+
+                  # Basic validation for MP3
+                  if not s3_content_type.startswith('audio/') or not file_name.lower().endswith(('.mp3', '.mpeg')):
+                      logger.error(f"Invalid file type: {file_name}, detected MIME type: {s3_content_type}. Only audio/mpeg or .mp3 supported.")
+                      return {
+                          "statusCode": 400,
+                          "headers": { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
+                          "body": json.dumps({"error": "Invalid file type. Only MP3 audio files are supported."})
+                      }
+                  
+                  # Decode base64 content
+                  file_content = base64.b64decode(file_content_b64)
+
+                  upload_key = f"{UPLOAD_PREFIX}/{file_name}"
+                  logger.info(f"Uploading {file_name} to s3://{UPLOAD_BUCKET_NAME}/{upload_key} with Content-Type: {s3_content_type}")
+                  s3.put_object(Bucket=UPLOAD_BUCKET_NAME, Key=upload_key, Body=file_content, ContentType=s3_content_type)
+                  logger.info(f"Successfully uploaded {file_name}")
+
+                  return {
+                      "statusCode": 200,
+                      "headers": {
+                          "Access-Control-Allow-Origin": "*",
+                          "Access-Control-Allow-Methods": "POST,OPTIONS",
+                          "Access-Control-Allow-Headers": "Content-Type" # Simpler, as other headers are often handled by browser
+                      },
+                      "body": json.dumps({"message": f"File {file_name} uploaded successfully. Transcription initiated."})
+                  }
+
+              except Exception as e:
+                  logger.error(f"Error uploading file: {e}", exc_info=True) # Log full traceback
+                  return {
+                      "statusCode": 500,
+                      "headers": {
+                          "Access-Control-Allow-Origin": "*",
+                          "Access-Control-Allow-Methods": "POST,OPTIONS",
+                          "Access-Control-Allow-Headers": "Content-Type"
+                      },
+                      "body": json.dumps({"error": str(e)})
+                  }
+
+  # Lambda Function to fetch transcribed text
+  FetchTranscriptFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: "fetchTranscriptFunction"
+      Runtime: python3.9
+      Handler: index.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 60
+      MemorySize: 128
+      Environment:
+        Variables:
+          OUTPUT_BUCKET_NAME: !Ref TranscriptionBucketName
+          TRANSCRIPT_TEXT_PREFIX: "transcripts/text"
+      Code:
+        ZipFile: |
+          import boto3
+          import json
+          import urllib.parse
+          import os
+          import logging
+
+          s3 = boto3.client('s3')
+          OUTPUT_BUCKET_NAME = os.environ['OUTPUT_BUCKET_NAME']
+          TRANSCRIPT_TEXT_PREFIX = os.environ['TRANSCRIPT_TEXT_PREFIX']
+
+          logger = logging.getLogger()
+          logger.setLevel(logging.INFO)
+
+          def lambda_handler(event, context):
+              logger.info(f"Received API Gateway fetch event: {json.dumps(event)}")
+              try:
+                  # For API Gateway proxy integration, path parameters are in event['pathParameters']
+                  if 'pathParameters' not in event or 'key' not in event['pathParameters']:
+                      logger.error("Missing transcript key in path parameters.")
+                      return {
+                          'statusCode': 400,
+                          'headers': { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
+                          'body': json.dumps({'error': 'Missing transcript key in path'})
+                      }
+                  
+                  # The 'key' here is the base filename without .txt
+                  requested_key_base = urllib.parse.unquote_plus(event['pathParameters']['key'])
+                  transcript_s3_key = f"{TRANSCRIPT_TEXT_PREFIX}/{requested_key_base}.txt"
+                  bucket = OUTPUT_BUCKET_NAME
+
+                  logger.info(f"Attempting to fetch transcript: s3://{bucket}/{transcript_s3_key}")
+                  response = s3.get_object(Bucket=bucket, Key=transcript_s3_key)
+                  content = response['Body'].read().decode('utf-8')
+                  logger.info(f"Successfully fetched transcript for {requested_key_base}.txt")
+
+                  return {
+                      'statusCode': 200,
+                      'headers': {
+                          "Content-Type": "text/plain", # Important for browser to display as text
+                          "Access-Control-Allow-Origin": "*",
+                          "Access-Control-Allow-Methods": "GET,OPTIONS",
+                          "Access-Control-Allow-Headers": "Content-Type"
+                      },
+                      'body': content
+                  }
+              except s3.exceptions.NoSuchKey:
+                  logger.warning(f"Transcript not found for key: {requested_key_base}.txt (might still be processing).")
+                  return {
+                      'statusCode': 404,
+                      'headers': {
+                          "Content-Type": "application/json",
+                          "Access-Control-Allow-Origin": "*",
+                          "Access-Control-Allow-Methods": "GET,OPTIONS",
+                          "Access-Control-Allow-Headers": "Content-Type"
+                      },
+                      'body': json.dumps({'error': f'Transcript not found for key: {requested_key_base} (or still processing).'})
+                  }
+              except Exception as e:
+                  logger.error(f"Error fetching transcript for {requested_key_base}: {e}", exc_info=True) # Log full traceback
+                  return {
+                      'statusCode': 500,
+                      'headers': {
+                          "Content-Type": "application/json",
+                          "Access-Control-Allow-Origin": "*",
+                          "Access-Control-Allow-Methods": "GET,OPTIONS",
+                          "Access-Control-Allow-Headers": "Content-Type"
+                      },
+                      'body': json.dumps({'error': str(e)})
+                  }
+
+  # Lambda Permission for S3 to invoke TranscribeAudioFunction
+  AllowS3ToInvokeLambda:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt TranscribeAudioFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: s3.amazonaws.com
+      SourceAccount: !Ref "AWS::AccountId"
+      SourceArn: !Sub arn:aws:s3:::${TranscriptionBucketName}
+
+  # API Gateway REST API
+  UploadApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: "TranscriptionAPI"
+      Description: "API for MP3 upload and transcription retrieval."
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+
+  # API Gateway Resource for '/upload'
+  UploadResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt UploadApi.RootResourceId
+      PathPart: "upload"
+      RestApiId: !Ref UploadApi
+
+  # API Gateway POST Method for '/upload'
+  UploadMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref UploadApi
+      ResourceId: !Ref UploadResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UploadFileFunction.Arn}/invocations"
+      MethodResponses: # Define expected HTTP responses (for documentation/CORS)
+        - StatusCode: "200"
+          ResponseParameters:
+            'method.response.header.Access-Control-Allow-Origin': true
+            'method.response.header.Access-Control-Allow-Methods': true
+            'method.response.header.Access-Control-Allow-Headers': true
+        - StatusCode: "400"
+          ResponseParameters:
+            'method.response.header.Access-Control-Allow-Origin': true
+            'method.response.header.Access-Control-Allow-Methods': true
+            'method.response.header.Access-Control-Allow-Headers': true
+        - StatusCode: "500"
+          ResponseParameters:
+            'method.response.header.Access-Control-Allow-Origin': true
+            'method.response.header.Access-Control-Allow-Methods': true
+            'method.response.header.Access-Control-Allow-Headers': true
+
+  # OPTIONS method for /upload to handle CORS preflight
+  UploadOptionsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref UploadApi
+      ResourceId: !Ref UploadResource
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: "MOCK"
+        IntegrationResponses:
+          - StatusCode: "200"
+            ResponseParameters:
+              'method.response.header.Access-Control-Allow-Origin': "'*'"
+              'method.response.header.Access-Control-Allow-Methods': "'POST,OPTIONS'"
+              'method.response.header.Access-Control-Allow-Headers': "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+            ResponseTemplates:
+              application/json: '{}'
+        RequestTemplates:
+          'application/json': '{"statusCode": 200}'
+      MethodResponses:
+        - StatusCode: "200"
+          ResponseParameters:
+            'method.response.header.Access-Control-Allow-Origin': true
+            'method.response.header.Access-Control-Allow-Methods': true
+            'method.response.header.Access-Control-Allow-Headers': true
+
+  # API Gateway Resource for '/transcripts'
+  FetchResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt UploadApi.RootResourceId
+      PathPart: "transcripts"
+      RestApiId: !Ref UploadApi
+
+  # API Gateway Resource for '/transcripts/{key}'
+  FetchItemResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !Ref FetchResource
+      PathPart: "{key}"
+      RestApiId: !Ref UploadApi
+
+  # API Gateway GET Method for '/transcripts/{key}'
+  FetchMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref UploadApi
+      ResourceId: !Ref FetchItemResource
+      HttpMethod: GET
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FetchTranscriptFunction.Arn}/invocations"
+      MethodResponses:
+        - StatusCode: "200"
+          ResponseParameters:
+            'method.response.header.Access-Control-Allow-Origin': true
+            'method.response.header.Access-Control-Allow-Methods': true
+            'method.response.header.Access-Control-Allow-Headers': true
+          ResponseModels:
+            'text/plain': Empty
+        - StatusCode: "404"
+          ResponseParameters:
+            'method.response.header.Access-Control-Allow-Origin': true
+            'method.response.header.Access-Control-Allow-Methods': true
+            'method.response.header.Access-Control-Allow-Headers': true
+          ResponseModels:
+            'application/json': Error
+        - StatusCode: "500"
+          ResponseParameters:
+            'method.response.header.Access-Control-Allow-Origin': true
+            'method.response.header.Access-Control-Allow-Methods': true
+            'method.response.header.Access-Control-Allow-Headers': true
+          ResponseModels:
+            'application/json': Error
+
+  # OPTIONS method for /transcripts/{key} to handle CORS preflight
+  FetchOptionsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref UploadApi
+      ResourceId: !Ref FetchItemResource
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: "MOCK"
+        IntegrationResponses:
+          - StatusCode: "200"
+            ResponseParameters:
+              'method.response.header.Access-Control-Allow-Origin': "'*'"
+              'method.response.header.Access-Control-Allow-Methods': "'GET,OPTIONS'"
+              'method.response.header.Access-Control-Allow-Headers': "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+            ResponseTemplates:
+              application/json: '{}'
+        RequestTemplates:
+          'application/json': '{"statusCode": 200}'
+      MethodResponses:
+        - StatusCode: "200"
+          ResponseParameters:
+            'method.response.header.Access-Control-Allow-Origin': true
+            'method.response.header.Access-Control-Allow-Methods': true
+            'method.response.header.Access-Control-Allow-Headers': true
+
+  # Permissions for API Gateway to invoke Lambda functions
+  LambdaPermissionForUploadApi:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt UploadFileFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${UploadApi}/*/POST/upload
+
+  LambdaPermissionForFetchApi:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt FetchTranscriptFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${UploadApi}/*/GET/transcripts/*
+
+  # API Gateway Deployment
+  ApiDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - UploadMethod
+      - UploadOptionsMethod
+      - FetchMethod
+      - FetchOptionsMethod
+    Properties:
+      RestApiId: !Ref UploadApi
+      StageName: prod
+
+Outputs:
+  ApiUrl:
+    Description: "API Gateway base URL for uploading and fetching transcripts"
+    Value: !Sub "https://${UploadApi}.execute-api.${AWS::Region}.amazonaws.com/prod"
+    Export:
+      Name: !Sub "${AWS::StackName}-ApiUrl"
+
+  TranscriptionBucketNameOutput:
+    Description: "Name of the S3 bucket for uploads and transcripts"
+    Value: !Ref TranscriptionBucketName
+    Export:
+      Name: !Sub "${AWS::StackName}-BucketName"
