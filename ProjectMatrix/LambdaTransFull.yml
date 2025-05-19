@@ -5,7 +5,7 @@ Parameters:
   TranscriptionBucketName:
     Type: String
     Description: Name of the bucket for uploads and transcription output
-    Default: "YOUR_BUCKET_NAME" # Changed default to be more unique
+    Default: "YOUR_BUCKET_NAME"
 
 Resources:
   # S3 Bucket for uploads and transcripts
@@ -24,7 +24,7 @@ Resources:
               - DELETE
               - HEAD
             AllowedOrigins:
-              - "*" # In production, restrict this to your specific frontend domain(s)
+              - "*"
             ExposedHeaders:
               - ETag
             MaxAge: 3000
@@ -524,7 +524,7 @@ Resources:
         IntegrationHttpMethod: POST
         Type: AWS_PROXY
         Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UploadFileFunction.Arn}/invocations"
-      MethodResponses: # Define expected HTTP responses (for documentation/CORS)
+      MethodResponses:
         - StatusCode: "200"
           ResponseParameters:
             'method.response.header.Access-Control-Allow-Origin': true
