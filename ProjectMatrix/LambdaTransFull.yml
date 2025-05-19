@@ -5,7 +5,7 @@ Parameters:
   TranscriptionBucketName:
     Type: String
     Description: Name of the bucket for uploads and transcription output
-    Default: "asaftest-transcribe-bucket-prod-2025" # Changed default to be more unique
+    Default: "YOUR_BUCKET_NAME" # Changed default to be more unique
 
 Resources:
   # S3 Bucket for uploads and transcripts
