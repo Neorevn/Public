@@ -4,12 +4,13 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>The Matrix Has You...</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <style>
         body {
             font-family: 'monospace', sans-serif;
             text-align: center;
             margin: 0;
-            overflow: hidden;
+            overflow: hidden; 
             background-color: #000;
             color: #00ff00;
             display: flex;
@@ -21,42 +22,52 @@
             z-index: 1;
         }
 
-        canvas {
+        #matrixCanvasBackground {
             position: absolute;
             top: 0;
             left: 0;
+            width: 100%;
+            height: 100%;
             z-index: -1;
             opacity: 0.7;
+        }
+
+        #mainContentWrapper {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: opacity 0.7s ease-out, transform 0.7s ease-out;
+        }
+        #mainContentWrapper.content-fade-out {
+            opacity: 0;
+            transform: scale(0.8); 
+            pointer-events: none;
         }
 
         h1 {
             color: #00ff00;
             text-shadow: 0 0 10px #00ff00, 0 0 20px #00ff00;
             margin-bottom: 20px;
-            position: relative;
-            z-index: 2;
-            font-size: 6em;
+            font-size: clamp(2em, 10vw, 6em);
         }
 
         h2 {
             color: #ffffff;
-            font-size: 1.2em;
+            font-size: clamp(0.8em, 4vw, 1.2em);
             margin-bottom: 30px;
-            position: relative;
-            z-index: 2;
+            max-width: 90%;
         }
 
         form {
             background-color: transparent;
             padding: 0;
-            border-radius: 0;
-            box-shadow: none;
             margin-bottom: 20px;
             border: none;
             width: 80%;
             max-width: 600px;
-            position: relative;
-            z-index: 2;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -77,43 +88,64 @@
 
         input[type="file"] {
             padding: 12px;
-            border: 2px solid #006400;
+            border: 2px solid #006400; 
             border-radius: 4px;
             width: 100%;
             box-sizing: border-box;
-            background-color: #000;
-            color: #00ff00;
+            background-color: #000; 
+            color: #00ff00; 
             font-size: 1.1em;
-            appearance: none;
-            -webkit-appearance: none;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding-right: 10px;
+            position: relative; 
         }
 
         input[type="file"]::-webkit-file-upload-button {
-            background-color: #006400;
-            color: #fff;
-            border: none;
+            background-color: #000; 
+            color: #00ff00; 
+            border: 1px solid #00ff00; 
             padding: 10px 15px;
-            border-radius: 0 4px 4px 0;
-            font-size: 1.1em;
+            border-radius: 4px; 
+            font-size: 1em; 
             cursor: pointer;
-            transition: background-color 0.3s ease;
+            transition: background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 0 5px #00ff00; 
+            margin-right: 10px; 
+            -webkit-appearance: none; 
+            appearance: none;
         }
 
         input[type="file"]::-webkit-file-upload-button:hover {
+            background-color: #00ff00; 
+            color: #000; 
+            box-shadow: 0 0 15px #00ff00; 
+        }
+
+        input[type="file"]::file-selector-button { 
+            background-color: #000;
+            color: #00ff00;
+            border: 1px solid #00ff00;
+            padding: 10px 15px;
+            border-radius: 4px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 0 5px #00ff00;
+            margin-right: 10px; 
+        }
+
+        input[type="file"]::file-selector-button:hover { 
             background-color: #00ff00;
             color: #000;
+            box-shadow: 0 0 15px #00ff00;
         }
+
 
         .button-container {
             display: flex;
             justify-content: center;
             margin-top: 10px;
             width: 100%;
+            flex-wrap: wrap;
         }
 
         button {
@@ -125,438 +157,373 @@
             transition: background-color 0.3s ease, box-shadow 0.3s ease;
             box-shadow: 0 0 5px #00ff00;
             margin: 5px;
+            color: #fff; 
         }
 
-        #uploadButton {
-            background-color: #ff0000;
+        @keyframes pulseRed {
+            0% { box-shadow: 0 0 5px #ff0000, 0 0 10px #cc0000; }
+            50% { box-shadow: 0 0 15px #ff3333, 0 0 25px #ff0000; }
+            100% { box-shadow: 0 0 5px #ff0000, 0 0 10px #cc0000; }
         }
-
-        #uploadButton:hover {
-            background-color: #b22222;
-            box-shadow: 0 0 15px #ff0000;
+        #uploadButton { 
+            background-color: #cc0000; 
+            animation: pulseRed 2s infinite ease-in-out;
         }
-
-        #bluePillButton {
-            background-color: #00008b;
+        #uploadButton:hover { 
+            background-color: #ff0000; 
+            animation-play-state: paused; 
+            box-shadow: 0 0 20px #ff0000, 0 0 30px #ff3333;
         }
+        
+        #bluePillButton { background-color: #00008b; }
+        #bluePillButton:hover { background-color: #0000cd; box-shadow: 0 0 15px #0000cd; }
 
-        #bluePillButton:hover {
-            background-color: #0000cd;
-            box-shadow: 0 0 15px #0000cd;
-        }
-
-        #message {
+        #message { 
             margin-top: 20px;
             font-size: 1.2em;
             color: #00ff00;
-            position: relative;
-            z-index: 2;
+            min-height: 1.5em; 
+            text-shadow: 0 0 5px #00ff00;
+            white-space: pre-wrap; 
+            max-width: 80%;
         }
-
-        #loading-animation-container {
-            margin-top: 20px;
-            display: none; /* Initially hidden */
-            flex-direction: column;
-            align-items: flex-start;
-            position: relative;
-            z-index: 2;
+        
+        #audioVisualizerCanvas { 
             width: 80%;
             max-width: 600px;
-            min-height: 100px; /* Ensure it has some height */
-        }
-
-        .loading-line {
-            font-family: 'monospace', sans-serif;
-            color: #00ff00;
-            white-space: nowrap;
-            opacity: 0;
-            position: relative;
-            animation: growAndFade 2s ease-in-out forwards;
-            margin-bottom: 2px;
-        }
-
-        .loading-line.flicker {
-            animation: growAndFade 2s ease-in-out forwards, matrix-flicker 0.1s steps(2, end) infinite;
-        }
-
-        @keyframes growAndFade {
-            0% {
-                width: 0;
-                opacity: 0;
-            }
-
-            20% {
-                opacity: 0.8;
-                width: 20%;
-            }
-
-            80% {
-                opacity: 0.8;
-                width: 80%;
-            }
-
-            100% {
-                width: 100%;
-                opacity: 0;
-            }
-        }
-
-        @keyframes matrix-flicker {
-            0%, 100% {
-                text-shadow: 0 0 8px #00ff00;
-            }
-
-            50% {
-                text-shadow: none;
-            }
+            height: 100px;
+            background-color: rgba(0, 20, 0, 0.5); 
+            border: 1px solid #00ff00;
+            margin-top: 20px;
+            display: none; 
+            box-shadow: 0 0 10px #00ff00;
         }
 
         #transcript {
-            margin-top: 30px;
             padding: 20px;
             border: 1px solid #006400;
             border-radius: 8px;
-            background-color: rgba(0, 0, 0, 0.8);
+            background-color: rgba(0, 0, 0, 0.9); 
             text-align: left;
             white-space: pre-wrap;
             font-family: 'monospace', sans-serif;
             font-size: 1em;
             color: #00ff00;
-            display: none;
+            display: none; 
             width: 80%;
             max-width: 800px;
-            margin-left: auto;
-            margin-right: auto;
-            box-shadow: 0 0 15px #00ff00;
-            position: relative;
-            z-index: 2;
+            max-height: 65vh; 
+            overflow-y: auto; 
+            box-shadow: 0 0 20px #00ff00, 0 0 30px #00dd00; 
+            position: fixed; 
+            top: 50%;
+            left: 50%;
+            z-index: 10; 
+            opacity: 0; 
+            transform: translate(-50%, -50%) scale(0.3); 
+            transition: opacity 1s ease-in-out, transform 1s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+        }
+        #transcript.visible { display: block; opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        #transcript h2 { font-size: 1.7em; margin-bottom: 15px; text-align: center; color: #00ff00; text-shadow: 0 0 10px #00ff00; }
+        #transcriptText { line-height: 1.6; font-size: 1.1em; }
+        .glitch-char { 
+            display: inline-block; 
+            animation: textGlitch 0.1s 1;
+        }
+        @keyframes textGlitch {
+            0%, 100% { opacity: 1; transform: none; }
+            50% { opacity: 0.7; transform: skewX(-10deg) skewY(5deg) scale(1.1); color: #33ff33; }
         }
 
-        #transcript h2 {
-            font-size: 1.7em;
-            margin-bottom: 15px;
-            text-align: center;
+        #finalMessage {
+            position: fixed;
+            bottom: 30px; 
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 1.3em;
             color: #00ff00;
-            text-shadow: 0 0 10px #00ff00;
+            text-shadow: 0 0 8px #00ff00;
+            z-index: 11; 
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+            padding: 10px 20px;
+            background-color: rgba(0,0,0,0.7);
+            border-radius: 5px;
+        }
+        #finalMessage.visible {
+            opacity: 1;
         }
 
-        #transcriptText {
-            line-height: 1.6;
-            font-size: 1.1em;
-        }
     </style>
 </head>
 <body>
-    <canvas id="matrixCanvas"></canvas>
-    <h1>The Matrix Has You...</h1>
-    <h2>Choose an MP3 to upload to the matrix and I'll show you how deep the rabbit hole goes</h2>
-    <form id="uploadForm">
-        <div>
-            <label for="fileInput">Choose MP3 File:</label>
-            <input type="file" id="fileInput" accept="audio/mpeg, audio/mp3" />
-        </div>
-        <div class="button-container">
-            <button id="uploadButton" type="submit">Take the Red Pill</button>
-            <button id="bluePillButton" type="button">Take the Blue Pill</button>
-        </div>
-    </form>
-
-    <div id="message"></div>
-    <div id="loading-animation-container"></div>  <div id="transcript">
+    <canvas id="matrixCanvasBackground"></canvas>
+    <div id="mainContentWrapper">
+        <h1>The Matrix Has You...</h1>
+        <h2>Choose an MP3 to upload. I'll show you how deep the rabbit hole goes.</h2>
+        <form id="uploadForm">
+            <div>
+                <label for="fileInput">Select MP3:</label>
+                <input type="file" id="fileInput" accept="audio/mpeg, audio/mp3" />
+            </div>
+            <div class="button-container">
+                <button id="uploadButton" type="submit">Take the Red Pill</button>
+                <button id="bluePillButton" type="button">Take the Blue Pill</button>
+            </div>
+        </form>
+        <div id="message">Follow the white rabbit, Neo.</div>
+        <canvas id="audioVisualizerCanvas"></canvas> 
+    </div>
+    
+    <div id="transcript">
         <h2>Transcription:</h2>
         <p id="transcriptText"></p>
     </div>
+    <div id="finalMessage"></div> 
 
     <script>
+        const mainContentWrapper = document.getElementById("mainContentWrapper");
         const uploadForm = document.getElementById("uploadForm");
-        const uploadButton = document.getElementById("uploadButton");
-        const bluePillButton = document.getElementById("bluePillButton");
         const fileInput = document.getElementById("fileInput");
         const messageDiv = document.getElementById("message");
-        const loadingAnimationContainer = document.getElementById("loading-animation-container");
+        const audioVisualizerCanvas = document.getElementById('audioVisualizerCanvas');
         const transcriptDiv = document.getElementById("transcript");
         const transcriptTextParagraph = document.getElementById("transcriptText");
-        // IMPORTANT: Replace with your actual API Gateway URL
-        const API_BASE_URL = "YOUR_API_GATEWAY_BASE_URL";
+        const finalMessageDiv = document.getElementById("finalMessage"); 
+        
+        const API_BASE_URL = "https://txsbpgf8n2.execute-api.us-east-1.amazonaws.com/prod"; 
 
-        // Matrix Effect Script
-        const canvas = document.getElementById('matrixCanvas');
-        const ctx = canvas.getContext('2d');
+        function operatorLog(message) { console.log(`%cOPERATOR LOG: %c${message}`, "color: #00ff00; font-weight: bold;", "color: #33cc33;"); }
 
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-
+        const matrixCanvas = document.getElementById('matrixCanvasBackground');
+        const matrixCtx = matrixCanvas.getContext('2d');
+        matrixCanvas.width = window.innerWidth; matrixCanvas.height = window.innerHeight;
         const katakana = 'アァカサタナハマヤャラワガザダバパイィキシチニヒミリヰギジヂビピウゥクスツヌフムユュルグズヅブプエェケセテネヘメレヱゲゼデベペオォコソトノホモヨョロヲゴゾドボポヴッン';
-        const latin = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-        const nums = '0123456789';
-        const chars = katakana + latin + nums;
+        const latin = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'; 
+        const matrixChars = katakana + latin + '!@#$%^&*()_+-=[]{}|;:",./<>?';
+        const matrixFontSize = 16;
+        let matrixColumns = matrixCanvas.width / matrixFontSize;
+        let matrixDrops = [];
+        for (let x = 0; x < matrixColumns; x++) matrixDrops[x] = 1;
+        let matrixRainSpeed = 33; let matrixRainDensityFactor = 0.05; let matrixInterval;
+        function drawMatrix() { matrixCtx.fillStyle = `rgba(0, 0, 0, ${matrixRainDensityFactor})`; matrixCtx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height); matrixCtx.fillStyle = '#00ff00'; matrixCtx.font = matrixFontSize + 'px monospace'; for (let i = 0; i < matrixDrops.length; i++) { const text = matrixChars.charAt(Math.floor(Math.random() * matrixChars.length)); matrixCtx.fillText(text, i * matrixFontSize, matrixDrops[i] * matrixFontSize); if (matrixDrops[i] * matrixFontSize > matrixCanvas.height && Math.random() > 0.975) matrixDrops[i] = 0; matrixDrops[i]++; } }
+        function updateMatrixAnimation() { clearInterval(matrixInterval); matrixInterval = setInterval(drawMatrix, matrixRainSpeed); }
+        updateMatrixAnimation(); 
+        window.addEventListener('resize', () => { matrixCanvas.width = window.innerWidth; matrixCanvas.height = window.innerHeight; matrixColumns = matrixCanvas.width / matrixFontSize; matrixDrops = []; for (let x = 0; x < matrixColumns; x++) matrixDrops[x] = 1; });
+        
+        let audioContext; let analyser; let source; let dataArray; let visualizerAnimationId;
+        function setupVisualizer() { if (!audioContext) { audioContext = new (window.AudioContext || window.webkitAudioContext)(); } analyser = audioContext.createAnalyser(); analyser.fftSize = 256; const bufferLength = analyser.frequencyBinCount; dataArray = new Uint8Array(bufferLength); const oscillator = audioContext.createOscillator(); oscillator.type = 'sine'; oscillator.frequency.setValueAtTime(220, audioContext.currentTime); const gainNode = audioContext.createGain(); gainNode.gain.setValueAtTime(0, audioContext.currentTime); oscillator.connect(gainNode); gainNode.connect(analyser); oscillator.start(); source = gainNode; audioVisualizerCanvas.style.display = 'block'; drawVisualizer(); }
+        function drawVisualizer() { visualizerAnimationId = requestAnimationFrame(drawVisualizer); analyser.getByteFrequencyData(dataArray); visualizerCtx.fillStyle = 'rgba(0, 10, 0, 0.7)'; visualizerCtx.fillRect(0, 0, visualizerCanvas.width, visualizerCanvas.height); const barWidth = (visualizerCanvas.width / dataArray.length) * 2; let barHeight; let x = 0; for (let i = 0; i < dataArray.length; i++) { barHeight = dataArray[i] / 2.5; visualizerCtx.fillStyle = 'rgba(0, 255, 0, ' + (barHeight / 150) + ')'; visualizerCtx.fillRect(x, visualizerCanvas.height - barHeight, barWidth, barHeight); x += barWidth + 2; } }
+        function stopVisualizer() { if (visualizerAnimationId) cancelAnimationFrame(visualizerAnimationId); if (source && source.disconnect) source.disconnect(); audioVisualizerCanvas.style.display = 'none'; }
 
-        const fontSize = 16;
-        const columns = canvas.width / fontSize;
-        const drops = [];
+        // --- Tone.js Sound Effects ---
+        const masterReverb = new Tone.Reverb(0.6).toDestination(); 
+        const masterDelay = new Tone.FeedbackDelay("8n", 0.25).connect(masterReverb);
 
-        for (let x = 0; x < columns; x++) {
-            drops[x] = 1;
+        const fmSynth = new Tone.FMSynth({ harmonicity: 1.2, modulationIndex: 10, oscillator: { type: "sine" }, envelope: { attack: 0.01, decay: 0.2, sustain: 0.05, release: 0.4 }, modulation: { type: "triangle" }, modulationEnvelope: { attack: 0.02, decay: 0.3, sustain: 0.05, release: 0.5 } }).connect(masterDelay);
+        const clickSynth = new Tone.MembraneSynth({ pitchDecay: 0.005, octaves: 4, oscillator: { type: "triangle" }, envelope: { attack: 0.001, decay: 0.08, sustain: 0, release: 0.1 } }).connect(masterReverb);
+        
+        // New synth for transcript ready sound
+        const successSynth = new Tone.PolySynth(Tone.Synth, {
+            volume: -8,
+            oscillator: { type: "triangle8" }, // A brighter, cleaner oscillator
+            envelope: { attack: 0.01, decay: 0.4, sustain: 0.1, release: 0.8 },
+            filter: { type: "lowpass", frequency: 1200, Q: 1 },
+            filterEnvelope: { attack: 0.05, decay: 0.2, sustain: 0.1, release: 0.5, baseFrequency: 300, octaves: 3 }
+        }).connect(masterReverb);
+
+        const errorSynth = new Tone.MetalSynth({ frequency: 40, envelope: { attack: 0.005, decay: 0.4, release: 0.2 }, harmonicity: 4.1, modulationIndex: 20, resonance: 1500, octaves: 0.8 }).toDestination(); 
+        const transitionSynth = new Tone.MonoSynth({ volume: -8, oscillator: { type: "fatsawtooth", count: 3, spread: 30 }, envelope: { attack: 1, decay: 0.3, sustain: 0.6, release: 2 }, filterEnvelope: { attack: 1, decay: 0.2, sustain: 0.4, release: 2, baseFrequency: 80, octaves: 5 } }).connect(masterReverb);
+        
+        // Removed Ambient Soundscape (ambientHumOsc, ambientPad, startAmbientSounds)
+        
+        function playSound(type) { 
+            Tone.start(); // Ensure context is active for sounds
+
+            const now = Tone.now(); 
+            switch(type) { 
+                case 'select': clickSynth.triggerAttackRelease("A5", "32n", now); break; 
+                case 'uploadClick': fmSynth.triggerAttackRelease("G2", "8n", now); break; 
+                case 'uploadSuccess': 
+                    // Using successSynth for a clearer positive indication
+                    successSynth.triggerAttackRelease(["D5", "A5"], "16n", now);
+                    successSynth.triggerAttackRelease("D6", "16n", now + 0.15);
+                    break; 
+                case 'transcriptReady': 
+                    // New, more pleasing sound for transcript reveal
+                    successSynth.triggerAttackRelease(["C5", "E5", "G5", "C6"], "2n", now + 0.1); // A clear C major chord, slightly delayed
+                    successSynth.triggerAttackRelease("E6", "4n", now + 0.5); // Higher note
+                    break; 
+                case 'error': errorSynth.triggerAttackRelease("8n", now); break; 
+                case 'processingTick': clickSynth.volume.value = -20; clickSynth.triggerAttackRelease("C6", "64n", now + Math.random() * 0.05); break; 
+                case 'pageTransition': transitionSynth.triggerAttackRelease("A1", "2s", now); break; 
+            } 
         }
+        fileInput.addEventListener('change', () => { playSound('select'); /* Removed startAmbientSounds() */ });
 
-        function drawMatrix() {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // --- Matrix Themed Messages ---
+        const matrixMessages = { preparing: "Verifying neural link...", uploading: "Injecting data stream into the Construct...", uploadConfirmed: "Mainline connection active. Stand by, Neo.", polling: ["Pinging the Oracle...", "Escaping Agent detection patterns...", "There is no spoon... only code.", "Ciphering reality streams...", "Awaiting decryption key...", "Searching for residual self-image...", "The Architect is thinking...", "Morpheus is on the line..."], success: "Message from Zion: Transcript decrypted.", errorGeneric: "System Failure! A critical error in the Matrix.", errorTranscript: "Data corruption! Unable to retrieve transcript.", timeout: "Signal lost. The construct is unstable. Try again." };
+        let currentPollingMessageIndex = 0;
 
-            ctx.fillStyle = '#00ff00';
-            ctx.font = fontSize + 'px monospace';
-
-            for (let i = 0; i < drops.length; i++) {
-                const text = chars.charAt(Math.floor(Math.random() * chars.length));
-                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
-
-                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
-                    drops[i] = 0;
-                }
-                drops[i]++;
-            }
+        function displayPollingMessage(details = "") { 
+            let message = matrixMessages.polling[currentPollingMessageIndex];
+            currentPollingMessageIndex = (currentPollingMessageIndex + 1) % matrixMessages.polling.length;
+            playSound('processingTick');
+            messageDiv.textContent = `${message} ${details}`;
         }
-
-        setInterval(drawMatrix, 33);
-
-        window.addEventListener('resize', () => {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            const columns = canvas.width / fontSize;
-            drops.length = 0;
-            for (let x = 0; x < columns; x++) {
-                drops[x] = 1;
-            }
-        });
-
-        // Helper function to convert ArrayBuffer to binary string (for btoa)
-        function arrayBufferToBinaryString(arrayBuffer) {
-            let binaryString = '';
-            const bytes = new Uint8Array(arrayBuffer);
-            const length = bytes.byteLength;
-            for (let i = 0; i < length; i++) {
-                binaryString += String.fromCharCode(bytes[i]);
-            }
-            return binaryString;
-        }
-
-        // Function to fetch the transcript from S3, using a GET request to API Gateway
-        async function fetchTranscript(s3KeyBase) {
-            const fetchTranscriptUrl = `${API_BASE_URL}/transcripts/${encodeURIComponent(s3KeyBase)}`;
-            console.log(`Attempting to fetch transcript from: ${fetchTranscriptUrl}`);
-            try {
-                const response = await fetch(fetchTranscriptUrl, {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'text/plain',
-                    },
-                });
-
-                if (!response.ok) {
-                    if (response.status === 404) {
-                        return null;
-                    }
-                    const errorDetails = await response.text();
-                    throw new Error(`Failed to fetch transcript: ${response.status} - ${errorDetails}`);
-                }
-                const transcriptContent = await response.text();
-                return transcriptContent;
-            } catch (error) {
-                console.error("Error fetching transcript:", error);
-                messageDiv.textContent = `Error fetching transcript: ${error.message}`;
-                return null;
-            }
-        }
-
-        // Function to poll for the transcript, with a timeout
-        async function pollForTranscript(s3KeyBase, timeout = 120000) {
+        function displayStatusMessage(type, details = "") { messageDiv.textContent = `${matrixMessages[type] || type} ${details}`; }
+        function displayFinalMessage(type, details = "") { finalMessageDiv.textContent = `${matrixMessages[type] || type} ${details}`; finalMessageDiv.classList.add('visible'); }
+        
+        // --- Core Logic ---
+        function arrayBufferToBinaryString(arrayBuffer) { let binaryString = ''; const bytes = new Uint8Array(arrayBuffer); for (let i = 0; i < bytes.byteLength; i++) { binaryString += String.fromCharCode(bytes[i]); } return binaryString; }
+        async function fetchTranscript(s3KeyBase) { const fetchTranscriptUrl = `${API_BASE_URL}/transcripts/${encodeURIComponent(s3KeyBase)}`; try { const response = await fetch(fetchTranscriptUrl); if (response.status === 404) return null; if (!response.ok) { const errorDetails = await response.text(); throw new Error(`Status: ${response.status} - ${errorDetails}`); } return await response.text(); } catch (error) { operatorLog(`ERROR fetching transcript: ${error.message}`); console.error("Error fetching transcript:", error); throw error; } }
+        
+        async function pollForTranscript(s3KeyBase, timeout = 180000) { 
             const startTime = Date.now();
-            const interval = 3000;
-
-            messageDiv.textContent = `Upload successful! Transcription initiated. Waiting for transcript... (Max ${timeout / 1000}s)`;
-            loadingAnimationContainer.style.display = 'flex';
-
-            let linesCreated = 0;
-            const maxLines = 8;
-            let animationIntervalId;
-
-            const addLoadingLine = () => {
-                if (linesCreated < maxLines) {
-                    const line = document.createElement('div');
-                    line.classList.add('loading-line');
-                    if (Math.random() < 0.3) {
-                        line.classList.add('flicker');
-                    }
-                    let lineLength = Math.floor(Math.random() * 20) + 10;
-                    let lineText = '';
-                    for (let i = 0; i < lineLength; i++) {
-                        lineText += chars.charAt(Math.floor(Math.random() * chars.length));
-                    }
-                    line.textContent = lineText;
-                    loadingAnimationContainer.appendChild(line);
-                    linesCreated++;
-                    setTimeout(addLoadingLine, 200);
-                }
-            };
-
-            const startLoadingAnimation = () => {
-                loadingAnimationContainer.innerHTML = '';
-                linesCreated = 0;
-                addLoadingLine();
-                animationIntervalId = setInterval(() => {
-                    if (linesCreated < maxLines) {
-                         addLoadingLine();
-                    } else {
-                        loadingAnimationContainer.innerHTML = '';
-                        linesCreated = 0;
-                        addLoadingLine();
-                    }
-                }, 2000);
-            };
-
-            startLoadingAnimation();
+            const interval = 5000; 
+            let pollCount = 0; 
+            operatorLog(`Polling for transcript: ${s3KeyBase}`);
+            matrixRainSpeed = 18; 
+            matrixRainDensityFactor = 0.1; 
+            updateMatrixAnimation();
+            // Visualizer is not started here (removed call to setupVisualizer)
 
             while (Date.now() - startTime < timeout) {
-                const transcriptText = await fetchTranscript(s3KeyBase);
-                if (transcriptText !== null) {
-                    clearInterval(animationIntervalId);
-                    loadingAnimationContainer.style.display = 'none';
-                    return transcriptText;
+                displayPollingMessage(`(Cycle ${++pollCount})`); 
+                try {
+                    const transcriptText = await fetchTranscript(s3KeyBase);
+                    if (transcriptText !== null) {
+                        operatorLog("Transcript located.");
+                        matrixRainSpeed = 33; 
+                        matrixRainDensityFactor = 0.05; 
+                        updateMatrixAnimation();
+                        return transcriptText;
+                    }
+                } catch (pollError) {
+                    operatorLog(`Polling attempt ${pollCount} failed: ${pollError.message}`);
+                    console.warn("Polling fetch error, will retry:", pollError);
                 }
                 await new Promise(resolve => setTimeout(resolve, interval));
             }
-
-            clearInterval(animationIntervalId);
-            loadingAnimationContainer.style.display = 'none';
-            throw new Error(`Timeout waiting for transcript to become available after ${timeout / 1000} seconds. The transcription might still be processing or failed.`);
+            operatorLog("Polling timed out.");
+            matrixRainSpeed = 33; 
+            matrixRainDensityFactor = 0.05;
+            updateMatrixAnimation();
+            playSound('error');
+            throw new Error(matrixMessages.timeout);
         }
 
-        function displayMatrixText(element, text, delay = 50) {
-            if (!element || typeof text !== 'string') {
-                console.error("displayMatrixText: Invalid element or text provided.", { element, text });
-                return;
-            }
+        const glitchChars = ['█', '▓', '▒', '░', '_', '#', '$', '%', '&', '*', matrixChars.charAt(Math.floor(Math.random() * matrixChars.length))];
+        function displayMatrixTextEffect(element, text, delay = 40, glitchChance = 0.05) { element.innerHTML = ''; let i = 0; function typeChar() { if (i < text.length) { const charSpan = document.createElement('span'); const originalChar = text.charAt(i); if (Math.random() < glitchChance && originalChar !== ' ' && originalChar !== '\n') { charSpan.classList.add('glitch-char'); charSpan.textContent = glitchChars[Math.floor(Math.random() * glitchChars.length)]; element.appendChild(charSpan); setTimeout(() => { charSpan.textContent = originalChar; charSpan.classList.remove('glitch-char'); }, 70 + Math.random() * 50); } else { charSpan.textContent = originalChar; element.appendChild(charSpan); } i++; setTimeout(typeChar, delay + (Math.random() * 15 - 7)); } else { operatorLog("Transcript fully rendered on screen."); } } operatorLog("Initiating transcript display sequence..."); typeChar(); }
 
-            element.innerHTML = '';
-            let i = 0;
-
-            function typeChar() {
-                if (i < text.length) {
-                    const charSpan = document.createElement('span');
-                    charSpan.classList.add('char');
-                    charSpan.textContent = text.charAt(i);
-                    element.appendChild(charSpan);
-
-                    setTimeout(() => {
-                        charSpan.classList.add('flicker');
-                    }, 10);
-
-                    i++;
-                    setTimeout(typeChar, delay);
-                } else {
-                    console.log("Matrix text display complete.");
-                }
-            }
-
-            console.log("Starting Matrix text display for length:", text.length);
-            typeChar();
+        function resetUI() {
+            mainContentWrapper.classList.remove('content-fade-out');
+            transcriptDiv.classList.remove('visible');
+            transcriptDiv.style.display = 'none'; 
+            finalMessageDiv.classList.remove('visible'); 
+            transcriptTextParagraph.innerHTML = '';
+            messageDiv.textContent = "Follow the white rabbit, Neo."; 
+            stopVisualizer(); 
+            matrixRainSpeed = 33; 
+            matrixRainDensityFactor = 0.05;
+            updateMatrixAnimation();
         }
 
         if (uploadForm) {
             uploadForm.addEventListener("submit", async (e) => {
                 e.preventDefault();
-                console.log("Form submitted!");
+                resetUI(); 
+                // Removed startAmbientSounds(); 
+                playSound('uploadClick');
+                operatorLog("Red Pill taken. Initiating upload sequence...");
 
+                if (API_BASE_URL === "YOUR_API_GATEWAY_BASE_URL") {
+                    displayStatusMessage("errorGeneric", "CRITICAL: API Endpoint Not Configured!");
+                    playSound('error'); operatorLog("ERROR: API_BASE_URL not set."); return;
+                }
                 if (fileInput.files.length > 0) {
                     const selectedFile = fileInput.files[0];
-                    console.log("Selected file:", selectedFile);
-                    messageDiv.textContent = `Preparing to upload: ${selectedFile.name}`;
-                    loadingAnimationContainer.innerHTML = '';
-                    transcriptDiv.style.display = "none";
-                    transcriptTextParagraph.innerHTML = '';
-
+                    operatorLog(`File selected: ${selectedFile.name}, Type: ${selectedFile.type}, Size: ${selectedFile.size} bytes`);
+                    displayStatusMessage("preparing", `(${selectedFile.name})`);
                     try {
                         const fileContent = await selectedFile.arrayBuffer();
                         const base64Content = btoa(arrayBufferToBinaryString(fileContent));
-
                         const uploadUrl = `${API_BASE_URL}/upload`;
-                        console.log("Upload URL:", uploadUrl);
-
-                        const response = await fetch(uploadUrl, {
-                            method: "POST",
-                            headers: {
-                                "Content-Type": "application/json",
-                            },
-                            body: JSON.stringify({
-                                fileName: selectedFile.name,
-                                fileType: selectedFile.type,
-                                fileContent: base64Content,
-                            }),
-                        });
-
+                        operatorLog(`Transmitting to: ${uploadUrl}`);
+                        displayStatusMessage("uploading");
+                        const response = await fetch(uploadUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fileName: selectedFile.name, fileType: selectedFile.type, fileContent: base64Content }), });
+                        
+                        const responseText = await response.text(); 
                         if (response.ok) {
-                            const data = await response.json();
+                            const data = JSON.parse(responseText);
+                            operatorLog(`Upload ACK: ${JSON.stringify(data)}`);
                             console.log("Upload Response:", data);
-
+                            displayStatusMessage("uploadConfirmed");
+                            playSound('uploadSuccess');
                             const baseFileName = selectedFile.name.split('.').slice(0, -1).join('.');
-                            console.log("Base file name for transcript polling:", baseFileName);
+                            const transcriptText = await pollForTranscript(baseFileName);
+                            
+                            playSound('pageTransition');
+                            mainContentWrapper.classList.add('content-fade-out'); 
+                            operatorLog("Main interface phasing out...");
 
-                            try {
-                                const transcriptText = await pollForTranscript(baseFileName);
-                                transcriptDiv.style.display = "block";
-                                displayMatrixText(transcriptTextParagraph, transcriptText, 20);
-                                messageDiv.textContent = "Transcription complete and displayed below!";
-                            } catch (error) {
-                                messageDiv.textContent = `Error: ${error.message}`;
-                                console.error("Error during polling for transcript:", error);
-                            }
+                            setTimeout(() => { 
+                                transcriptDiv.style.display = 'block'; 
+                                void transcriptDiv.offsetWidth; 
+                                transcriptDiv.classList.add('visible'); 
+                                operatorLog("Transcript display initiated.");
+                                
+                                setTimeout(() => { 
+                                   playSound('transcriptReady');
+                                   displayMatrixTextEffect(transcriptTextParagraph, transcriptText);
+                                   displayFinalMessage("success"); 
+                                }, 1000); 
+
+                            }, 700); 
 
                         } else {
-                            let errorMessage = 'Unknown error occurred during upload.';
-                            try {
-                                const errorJson = await response.json();
-                                errorMessage = errorJson.message || JSON.stringify(errorJson);
-                            } catch (e) {
-                                errorMessage = await response.text();
-                            }
-                            messageDiv.textContent = `Upload failed. Status: ${response.status} - ${errorMessage}`;
-                            console.error("Upload Error:", response.status, { message: errorMessage });
+                            let errorMessage = responseText;
+                            try { errorMessage = JSON.parse(responseText).error || responseText; } catch {}
+                            operatorLog(`Upload FAILED. Status: ${response.status}, Message: ${errorMessage}`);
+                            displayStatusMessage("errorGeneric", `Status: ${response.status} - ${errorMessage}`);
+                            playSound('error'); 
                         }
-
                     } catch (error) {
-                        messageDiv.textContent = `Error during upload or processing: ${error.message || error}`;
-                        console.error("Upload Catch Error:", error);
+                        operatorLog(`Upload CRITICAL ERROR: ${error.message}`);
+                        displayStatusMessage("errorGeneric", error.message || String(error));
+                        playSound('error'); 
                     }
-
                 } else {
-                    messageDiv.textContent = "Please choose an MP3 file to upload.";
+                    operatorLog("Upload attempt without file selection.");
+                    displayStatusMessage("No file chosen, Agent.");
                 }
             });
-        } else {
-            console.error("Could not find the uploadForm element.");
-            messageDiv.textContent = "Error: Application initialization failed. Missing form.";
         }
 
-        // "Take the Blue Pill" button functionality
+        const bluePillButton = document.getElementById("bluePillButton"); 
         if (bluePillButton) {
             bluePillButton.addEventListener("click", () => {
+                playSound('error'); 
+                // Removed startAmbientSounds(); 
+                operatorLog("Blue Pill taken. User chose blissful ignorance.");
                 document.body.innerHTML = `
                     <div style="background-color: #0000aa; color: #fff; font-family: 'Courier New', monospace; padding: 20px; text-align: left; height: 100vh; display: flex; flex-direction: column; justify-content: center;">
                         <p style="font-size: 24px; margin-bottom: 10px;">:( A problem has been detected and Matrix has been shut down to prevent damage to your Brain.</p>
                         <p style="font-size: 18px; margin-bottom: 10px;">The problem seems to be caused by the following file: <strong>NEOREVN.SYS</strong></p>
                         <p style="font-size: 18px; margin-bottom: 10px;">PAGE_FAULT_IN_NONPAGED_AREA</p>
                         <p style="font-size: 16px;">If this is the first time you've seen this stop error screen, restart your Brain. If this screen appears again, follow these steps:</p>
-                        <ul style="font-size: 16px;">
+                        <ul style="font-size: 16px; margin-left: 20px; list-style-type: disc;">
                             <li>Check to make sure any new hardware or software is properly docked in and powered on. If this is a new installation, ask Ilya for any AWS updates you might need.</li>
                             <li>If problems continue, disable or remove any newly installed hardware or software. Disable MetaCortex memory options such as caching or shadowing. If you need to use Safe Mode to remove or disable components, restart your computer, press F8 to select Advanced Startup Options, and then select Safe Mode.</li>
                         </ul>
-                        <p style="font-size: 16px;">Technical information:</p>
+                        <p style="font-size: 16px; margin-top: 20px;">Technical information:</p>
                         <p style="font-size: 14px;">*** STOP: 0x00000050 (0xFFFFF80000000000, 0x0000000000000001, 0xFFFFF80001004054, 0x0000000000000000)</p>
                         <p style="font-size: 14px;">*** NEOREVN.SYS - Address FFFFF80001004054 base at FFFFF80000000000, DateStamp 3e6e4e01</p>
-                    </div>
-                `;
+                    </div>`;
             });
         }
+        operatorLog("System Initialized. Awaiting user input...");
+        // Removed ambient sound auto-start on page load. It will start on first user interaction.
     </script>
 </body>
 </html>
