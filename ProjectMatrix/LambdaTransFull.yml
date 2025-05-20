@@ -5,11 +5,11 @@ Parameters:
   TranscriptionBucketName:
     Type: String
     Description: "Name of the bucket for uploads and transcription output. MUST BE GLOBALLY UNIQUE."
-    Default: "asaftest11-transcription-bucket" # Please change this
+    Default: "your-transcription-bucket" # Please change this
   NotificationEmail:
     Type: String
     Description: "Email address to receive notifications for alarms."
-    Default: "asaf.amir1@gmail.com" # Please change this
+    Default: "YourEmail" # Please change this
   UploadsExpirationDays:
     Type: Number
     Description: "Number of days after which to delete files from the 'uploads/' prefix."
