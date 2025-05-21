@@ -1,0 +1,328 @@
+AWSTemplateFormatVersion: '2010-09-09'
+# <<Created by Neorevn>>
+Description: >
+  CloudFormation template to deploy a daily quote bot that fetches a quote from ZenQuotes.io and sends it to a Discord channel using a webhook.
+
+Parameters:
+  DiscordWebhookUrlParameter:
+    Type: String
+    NoEcho: true
+    Description: 'The Discord Webhook URL. This will be stored in AWS Secrets Manager.'
+    MinLength: 10 # Basic validation
+  ScheduleExpressionParameter:
+    Type: String
+    Description: 'The schedule expression for sending the daily quote (e.g., cron(0 10 * * ? *) for 10 AM UTC daily).'
+    Default: 'cron(0 18 * * ? *)' # Default to 18:00 UTC daily
+
+Resources:
+  # --- Secrets Manager ---
+  DiscordWebhookSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub 'discord/quotebot/webhookurl-${AWS::StackName}'
+      Description: 'Stores the Discord Webhook URL for the Daily Quote Bot.'
+      SecretString: !Sub |
+        {"webhook_url": "${DiscordWebhookUrlParameter}"}
+
+  # --- IAM Roles ---
+  FetchQuoteLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'FetchQuoteLambdaRole-${AWS::StackName}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  SendToDiscordLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'SendToDiscordLambdaRole-${AWS::StackName}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: SecretsManagerReadAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !Ref DiscordWebhookSecret
+
+  StateMachineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'QuoteStateMachineRole-${AWS::StackName}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: states.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: LambdaInvokeAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource:
+                  - !GetAtt FetchQuoteFunction.Arn
+                  - !GetAtt SendToDiscordFunction.Arn
+
+  EventBridgeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'QuoteEventBridgeRole-${AWS::StackName}'
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service: "events.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        - PolicyName: "StepFunctionsStartExecution"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action: "states:StartExecution"
+                Resource: !Ref QuoteOfTheDayStateMachine
+
+  # --- Lambda Functions ---
+  FetchQuoteFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub 'FetchQuoteFunction-${AWS::StackName}'
+      Handler: index.lambda_handler
+      Role: !GetAtt FetchQuoteLambdaRole.Arn
+      Runtime: python3.9
+      Timeout: 30 
+      MemorySize: 128 
+      Code:
+        ZipFile: |
+          import json
+          import urllib3
+          import os
+
+          http = urllib3.PoolManager()
+          # Using ZenQuotes.io API
+          QUOTE_API_URL = os.environ.get('QUOTE_API_URL', "https://zenquotes.io/api/random")
+
+          def lambda_handler(event, context):
+              print(f"Fetching quote from: {QUOTE_API_URL}")
+              response = None
+              try:
+                  response = http.request("GET", QUOTE_API_URL)
+                  if response.status == 200:
+                      data_array = json.loads(response.data.decode('utf-8'))
+                      print(f"API Response Data: {data_array}")
+                      
+                      # ZenQuotes.io structure: returns a list with one quote object
+                      if isinstance(data_array, list) and len(data_array) > 0:
+                          quote_obj = data_array[0] # Get the first (and only) object
+                          if isinstance(quote_obj, dict) and "q" in quote_obj and "a" in quote_obj:
+                              quote = quote_obj['q']
+                              author = quote_obj['a']
+                              print(f"Fetched quote: '{quote}' by {author}")
+                              return {"quote": quote, "author": author}
+                          else:
+                              print(f"Unexpected object structure in ZenQuotes.io response: {quote_obj}")
+                              return {"quote": "Could not parse the quote today (unexpected object structure).", "author": "System"}
+                      else:
+                          print(f"Unexpected API response format (not a non-empty list) from ZenQuotes.io: {data_array}")
+                          return {"quote": "Could not parse the quote today (unexpected list format).", "author": "System"}
+                  else:
+                      error_message = f"Error fetching quote: API responded with status {response.status}. Response: {response.data.decode('utf-8') if response else 'No response'}"
+                      print(error_message)
+                      return {"quote": f"Could not fetch a quote today (API Error {response.status}).", "author": "System"}
+              except json.JSONDecodeError as json_e:
+                  response_data_for_log = 'No response or no data attribute'
+                  if response and hasattr(response, 'data'):
+                      try:
+                          response_data_for_log = response.data.decode('utf-8')
+                      except: 
+                          response_data_for_log = "Could not decode response data"
+                  print(f"JSON Decode Error fetching quote: {str(json_e)}. Response was: {response_data_for_log}")
+                  return {"quote": "Error decoding API response (not valid JSON).", "author": "System"}
+              except Exception as e:
+                  print(f"Exception fetching quote: {str(e)}")
+                  return {"quote": "An error occurred while fetching the quote.", "author": "System"}
+      Environment:
+        Variables:
+          QUOTE_API_URL: "https://zenquotes.io/api/random"
+
+  SendToDiscordFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub 'SendToDiscordFunction-${AWS::StackName}'
+      Handler: index.lambda_handler
+      Role: !GetAtt SendToDiscordLambdaRole.Arn
+      Runtime: python3.9
+      Timeout: 30
+      MemorySize: 128
+      Code:
+        ZipFile: |
+          import json
+          import os
+          import urllib3
+          import boto3
+
+          http = urllib3.PoolManager()
+          secrets_manager = boto3.client('secretsmanager')
+
+          SECRET_ARN = os.environ['DISCORD_SECRET_ARN']
+
+          def get_discord_webhook_url():
+              try:
+                  # print(f"Attempting to retrieve secret: {SECRET_ARN}") # Simplified logging
+                  secret_value_response = secrets_manager.get_secret_value(SecretId=SECRET_ARN)
+                  if 'SecretString' in secret_value_response:
+                      secret = json.loads(secret_value_response['SecretString'])
+                      webhook_url = secret.get('webhook_url')
+                      if webhook_url:
+                          # print("Successfully retrieved Discord Webhook URL.") # Simplified logging
+                          return webhook_url
+                      else:
+                          print("Error: 'webhook_url' key not found in secret JSON.")
+                          raise ValueError("'webhook_url' key not found in secret JSON.")
+                  else:
+                      print("Error: 'SecretString' not found in secret response.")
+                      raise ValueError("'SecretString' not found in secret response.")
+              except Exception as e:
+                  print(f"Error retrieving secret: {str(e)}")
+                  raise e
+
+
+          def lambda_handler(event, context):
+              # print(f"Received event: {event}") # Simplified logging
+              quote_text = event.get('quote', 'The quote of the day seems to be playing hide and seek!')
+              author_info = event.get('author', 'The Universe') 
+
+              discord_webhook_url = get_discord_webhook_url()
+              
+              message_content = f"**Asaf's Quote of the Day!** ✨\n>>> {quote_text}\n*— {author_info}*"
+
+              discord_payload = {
+                  "content": message_content,
+                  "username": "Asaf's Quote Bot" 
+              }
+              encoded_data = json.dumps(discord_payload).encode('utf-8')
+              # print(f"Sending payload to Discord: {discord_payload}") # Simplified logging
+
+              try:
+                  response = http.request(
+                      "POST",
+                      discord_webhook_url,
+                      body=encoded_data,
+                      headers={'Content-Type': 'application/json'}
+                  )
+                  if response.status not in [200, 204]:
+                      print(f"Error sending to Discord: Status {response.status}, Body: {response.data.decode('utf-8')}")
+                      raise Exception(f"Discord API Error: Status {response.status} - {response.data.decode('utf-8')}")
+                  else:
+                      # print(f"Successfully sent message to Discord. Status: {response.status}") # Simplified logging
+                      return {"statusCode": response.status, "body": "Message sent to Discord"}
+              except Exception as e:
+                  print(f"Exception sending to Discord: {str(e)}")
+                  raise e
+      Environment:
+        Variables:
+          DISCORD_SECRET_ARN: !Ref DiscordWebhookSecret
+
+  # --- Step Functions State Machine ---
+  QuoteOfTheDayStateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      StateMachineName: !Sub 'QuoteStateMachine-${AWS::StackName}'
+      RoleArn: !GetAtt StateMachineRole.Arn
+      DefinitionString: !Sub
+        - |-
+          {
+            "Comment": "Daily Quote to Discord Bot State Machine for Asaf (ZenQuotes)",
+            "StartAt": "FetchQuote",
+            "States": {
+              "FetchQuote": {
+                "Type": "Task",
+                "Resource": "${FetchQuoteArn}",
+                "Next": "SendQuoteToDiscord",
+                "Retry": [{
+                  "ErrorEquals": ["States.TaskFailed", "States.Timeout"],
+                  "IntervalSeconds": 10,
+                  "MaxAttempts": 2,
+                  "BackoffRate": 1.5
+                }],
+                "Catch": [
+                  {
+                    "ErrorEquals": ["States.ALL"],
+                    "Next": "QuoteProcessFailed"
+                  }
+                ]
+              },
+              "SendQuoteToDiscord": {
+                "Type": "Task",
+                "Resource": "${SendDiscordArn}",
+                "End": true,
+                "Retry": [{
+                  "ErrorEquals": ["States.TaskFailed", "States.Timeout", "Exception"],
+                  "IntervalSeconds": 15,
+                  "MaxAttempts": 2,
+                  "BackoffRate": 2.0
+                }],
+                "Catch": [
+                  {
+                    "ErrorEquals": ["States.ALL"],
+                    "Next": "QuoteProcessFailed"
+                  }
+                ]
+              },
+              "QuoteProcessFailed": {
+                "Type": "Fail",
+                "Cause": "The quote fetching or Discord notification process failed after retries.",
+                "Error": "QuoteDeliveryPipelineError"
+              }
+            }
+          }
+        - FetchQuoteArn: !GetAtt FetchQuoteFunction.Arn
+          SendDiscordArn: !GetAtt SendToDiscordFunction.Arn
+
+  # --- EventBridge (CloudWatch Events) Rule ---
+  DailyQuoteEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub 'DailyQuoteEventRule-${AWS::StackName}'
+      Description: 'Triggers the Daily Quote to Discord Step Function.'
+      ScheduleExpression: !Ref ScheduleExpressionParameter
+      State: ENABLED
+      Targets:
+        - Arn: !Ref QuoteOfTheDayStateMachine
+          Id: 'QuoteStateMachineTarget'
+          RoleArn: !GetAtt EventBridgeRole.Arn 
+
+Outputs:
+  StateMachineArn:
+    Description: 'ARN of the Quote of the Day Step Functions State Machine'
+    Value: !Ref QuoteOfTheDayStateMachine
+  DiscordSecretArn:
+    Description: 'ARN of the Secrets Manager secret storing the Discord Webhook URL'
+    Value: !Ref DiscordWebhookSecret
+  FetchQuoteLambdaName:
+    Description: 'Name of the Fetch Quote Lambda function'
+    Value: !Ref FetchQuoteFunction
+  SendToDiscordLambdaName:
+    Description: 'Name of the Send to Discord Lambda function'
+    Value: !Ref SendToDiscordFunction
