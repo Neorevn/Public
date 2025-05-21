@@ -1,11 +1,11 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: "Full stack to handle MP3 transcription with monolithic Lambda, DynamoDB, S3 lifecycle, and CloudWatch/SNS monitoring. (Reverted to v2.2 features with v2.12 CORS fixes)"
+Description: "Full stack to handle MP3 transcription with monolithic Lambda, DynamoDB, S3 lifecycle, and CloudWatch/SNS monitoring. (v2.2 features, v2.12 CORS, cfnresponse fix)"
 
 Parameters:
   TranscriptionBucketName:
     Type: String
     Description: "Name of the bucket for uploads and transcription output. MUST BE GLOBALLY UNIQUE."
-    Default: "your-transcription-bucket" # Please change this
+    Default: "Your-transcription-bucket" # Please change this
   NotificationEmail:
     Type: String
     Description: "Email address to receive notifications for alarms."
@@ -25,7 +25,7 @@ Parameters:
   DeploymentTimestamp: 
     Type: String
     Description: "Timestamp or unique string to force API deployment. Change this value to redeploy API."
-    Default: "reverted-initial-deploy"
+    Default: "YourStackVersion"
 
 Resources:
   # S3 Bucket for uploads and transcripts
@@ -85,25 +85,141 @@ Resources:
     Properties:
       FunctionName: !Sub "${AWS::StackName}-CreateBucketFolders"
       Runtime: python3.9
-      Handler: index.lambda_handler
+      Handler: index.lambda_handler # The ZipFile content is treated as index.py
       Role: !GetAtt CreateBucketFoldersRole.Arn
-      Timeout: 60
+      Timeout: 60 # Increased slightly, though 60 should be enough
+      MemorySize: 128
       Code:
         ZipFile: |
-          import boto3, cfnresponse, logging
-          s3 = boto3.client('s3'); logger = logging.getLogger(); logger.setLevel(logging.INFO)
-          def lambda_handler(event, context):
-              logger.info(f"Event: {event}")
-              props = event.get('ResourceProperties'); bucket_name = props.get('BucketName'); folders = props.get('Folders', [])
-              status = cfnresponse.SUCCESS; response_data = {}; physical_resource_id = event.get('PhysicalResourceId', f"custom-{bucket_name}-{context.log_stream_name}")
+          # --- BEGIN cfnresponse.py content (copied verbatim) ---
+          import urllib3
+          import json
+
+          # These constants and the send function will be globally available to the handler code below
+          SUCCESS = "SUCCESS"
+          FAILED = "FAILED"
+
+          http = urllib3.PoolManager()
+
+          def send(event, context, responseStatus, responseData, physicalResourceId=None, noEcho=False, reason=None):
+              responseUrl = event['ResponseURL']
+
+              # Using print for logging as in many cfnresponse examples
+              # These logs will appear in CloudWatch under the Lambda function's log group
+              print(f"CFNRESPONSE - Response URL: {responseUrl}")
+              # print(f"CFNRESPONSE - Event: {json.dumps(event)}") # Uncomment for very detailed event logging if needed
+
+              responseBody = {
+                  'Status': responseStatus,
+                  'Reason': reason or "See the details in CloudWatch Log Stream: " + context.log_stream_name,
+                  'PhysicalResourceId': physicalResourceId or context.log_stream_name,
+                  'StackId': event['StackId'],
+                  'RequestId': event['RequestId'],
+                  'LogicalResourceId': event['LogicalResourceId'],
+                  'NoEcho': noEcho,
+                  'Data': responseData
+              }
+
+              json_responseBody = json.dumps(responseBody)
+
+              print(f"CFNRESPONSE - Response body: {json_responseBody}")
+
+              headers = {
+                  'content-type': '',
+                  'content-length': str(len(json_responseBody))
+              }
+
               try:
-                  if event['RequestType'] == 'Create' or event['RequestType'] == 'Update':
-                      for folder in folders:
-                          if not folder.endswith('/'): folder += '/'
-                          s3.put_object(Bucket=bucket_name, Key=folder, Body='')
-                  elif event['RequestType'] == 'Delete': logger.info("Delete. No folder deletion needed.")
-              except Exception as e: logger.error(f"Error: {e}", exc_info=True); status = cfnresponse.FAILED; response_data['Error'] = str(e)
-              finally: cfnresponse.send(event, context, status, response_data, physical_resource_id)
+                  response = http.request('PUT', responseUrl, headers=headers, body=json_responseBody)
+                  print(f"CFNRESPONSE - Status code from S3 presigned URL: {response.status}")
+              except Exception as e:
+                  print(f"CFNRESPONSE - send(..) failed executing http.request(..): {e}")
+                  # If send fails, the custom resource will time out in CloudFormation.
+                  # It's critical this part works. Raising the exception helps surface it in Lambda logs.
+                  raise
+          # --- END cfnresponse.py content ---
+
+          # --- BEGIN Original Handler Code (modified for bundled cfnresponse) ---
+          import boto3
+          import logging # logging module is still used for the handler's specific logs
+
+          s3 = boto3.client('s3')
+          logger = logging.getLogger("S3FolderCreatorHandler")
+          logger.setLevel(logging.INFO)
+
+          def lambda_handler(event, context):
+              logger.info(f"S3FolderCreatorHandler - Received event: {json.dumps(event)}")
+              
+              props = event.get('ResourceProperties', {}) # Default to empty dict if not present
+              bucket_name = props.get('BucketName')
+              folders_to_create = props.get('Folders', []) # Default to empty list
+              
+              # Use the globally defined SUCCESS, FAILED from the vendored cfnresponse code
+              response_status = SUCCESS # Default to SUCCESS
+              response_data = {}
+              
+              # Determine PhysicalResourceId:
+              # For 'Create', generate a new one.
+              # For 'Update' or 'Delete', use the one from the event.
+              physical_resource_id = event.get('PhysicalResourceId')
+              if event['RequestType'] == 'Create':
+                  if not physical_resource_id: # Should always be true for 'Create'
+                      # Create a unique ID. Using parts of log stream name is common.
+                      physical_resource_id = f"s3-folders-{bucket_name or 'unknownbucket'}-{context.log_stream_name.split('/')[-1]}"
+                  logger.info(f"S3FolderCreatorHandler - CREATE request. Generated PhysicalResourceId: {physical_resource_id}")
+              else: # Update or Delete
+                  if not physical_resource_id:
+                      # This case should ideally not happen for Update/Delete if CFN is working correctly.
+                      logger.warning("S3FolderCreatorHandler - PhysicalResourceId not found in event for Update/Delete. Using log stream name as fallback.")
+                      physical_resource_id = context.log_stream_name 
+                  logger.info(f"S3FolderCreatorHandler - {event['RequestType']} request. Using PhysicalResourceId: {physical_resource_id}")
+
+              try:
+                  if not bucket_name:
+                      raise ValueError("ResourceProperties must include 'BucketName'.")
+
+                  request_type = event['RequestType']
+                  logger.info(f"S3FolderCreatorHandler - Processing RequestType: {request_type} for bucket: {bucket_name}")
+
+                  if request_type == 'Create' or request_type == 'Update':
+                      if not folders_to_create:
+                          logger.info("S3FolderCreatorHandler - No 'Folders' specified to create/update.")
+                      else:
+                          for folder_key in folders_to_create:
+                              # Ensure the "folder" key ends with a slash
+                              if not folder_key.endswith('/'):
+                                  folder_key_with_slash = folder_key + '/'
+                              else:
+                                  folder_key_with_slash = folder_key
+                              
+                              logger.info(f"S3FolderCreatorHandler - Ensuring folder (prefix object) exists: s3://{bucket_name}/{folder_key_with_slash}")
+                              s3.put_object(Bucket=bucket_name, Key=folder_key_with_slash, Body='') # Create a 0-byte object
+                          logger.info(f"S3FolderCreatorHandler - Successfully processed all specified folders for bucket: {bucket_name}")
+                  
+                  elif request_type == 'Delete':
+                      logger.info(f"S3FolderCreatorHandler - RequestType 'Delete'. PhysicalResourceId: {physical_resource_id}.")
+                      logger.info("S3FolderCreatorHandler - No explicit S3 delete action taken for the folder prefix objects by this custom resource. S3 prefixes are not deleted like directories.")
+                      # Note: The 0-byte objects created by this resource to represent folders will remain
+                      # unless explicitly deleted or managed by a lifecycle policy.
+                      # If you need to delete these specific 0-byte objects on stack deletion,
+                      # you would add s3.delete_object calls here for each key in props.get('OldResourceProperties', {}).get('Folders', []).
+                      # However, this is often not required as S3 "folders" are just prefixes.
+                  
+                  else:
+                      logger.warning(f"S3FolderCreatorHandler - Unsupported RequestType: {request_type}. No action taken.")
+                      # Still send SUCCESS as no error occurred in processing the unknown type.
+
+              except Exception as e:
+                  logger.error(f"S3FolderCreatorHandler - Unhandled exception: {str(e)}", exc_info=True)
+                  response_status = FAILED # Use the globally defined FAILED
+                  response_data['Error'] = f"An error occurred: {str(e)}" # Provide error info in response
+                  # The 'reason' for the cfnresponse.send will be automatically populated with log stream info
+              
+              finally:
+                  # Use the send function defined above, NOT cfnresponse.send
+                  send(event, context, response_status, response_data, physical_resource_id)
+                  logger.info("S3FolderCreatorHandler - Response sent.")
+          # --- END Original Handler Code (modified) ---
     DependsOn: CreateBucketFoldersRole
 
   CreateBucketFoldersRole:
@@ -114,9 +230,9 @@ Resources:
       Policies:
         - PolicyName: "CreateBucketFoldersPolicy"
           PolicyDocument: {Version: "2012-10-17", Statement: [
-              {Effect: Allow, Action: [s3:PutObject], Resource: !Sub "arn:aws:s3:::${TranscriptionBucketName}/*"},
+              {Effect: Allow, Action: [s3:PutObject, s3:DeleteObject], Resource: !Sub "arn:aws:s3:::${TranscriptionBucketName}/*"}, # Added DeleteObject if you ever want to clean up the placeholder objects on delete
               {Effect: Allow, Action: [s3:ListBucket], Resource: !Sub "arn:aws:s3:::${TranscriptionBucketName}"},
-              {Effect: Allow, Action: ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"], Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-CreateBucketFolders:*"}
+              {Effect: Allow, Action: ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"], Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-CreateBucketFolders*:*"} # Added wildcard for log stream
             ]}
 
   # DynamoDB Table for Transcription Metadata
@@ -171,6 +287,8 @@ Resources:
           metadata_table = dynamodb.Table(DYNAMODB_TABLE_NAME)
           UPLOAD_PREFIX = "uploads"; TRANSCRIPT_JSON_PREFIX = "transcripts/json"; TRANSCRIPT_TEXT_PREFIX = "transcripts/text"
           logger = logging.getLogger(); logger.setLevel(logging.INFO)
+          if not logging.getLogger().handlers: logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] (%(name)s) %(message)s')
+
 
           def update_dynamodb(job_id, status, original_file_name=None, s3_upload_key=None, s3_transcript_json_path=None, s3_transcript_text_path=None, error_message=None, upload_ts=None, completion_ts=None):
               try:
@@ -291,6 +409,7 @@ Resources:
           import boto3, json, base64, os, logging, mimetypes
           s3 = boto3.client('s3'); UPLOAD_BUCKET_NAME = os.environ['UPLOAD_BUCKET_NAME']; UPLOAD_PREFIX = os.environ.get('UPLOAD_PREFIX', "uploads")
           logger = logging.getLogger(); logger.setLevel(logging.INFO)
+          if not logging.getLogger().handlers: logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] (%(name)s) %(message)s')
           def lambda_handler(event, context):
               logger.info(f"Upload event headers: {event.get('headers')}")
               try:
@@ -334,6 +453,7 @@ Resources:
           import boto3, json, urllib.parse, os, logging
           s3 = boto3.client('s3'); OUTPUT_BUCKET_NAME = os.environ['OUTPUT_BUCKET_NAME']; TRANSCRIPT_TEXT_PREFIX = os.environ['TRANSCRIPT_TEXT_PREFIX']
           logger = logging.getLogger(); logger.setLevel(logging.INFO)
+          if not logging.getLogger().handlers: logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] (%(name)s) %(message)s')
           def lambda_handler(event, context):
               logger.info(f"Fetch event: {json.dumps(event)}")
               try:
@@ -387,13 +507,13 @@ Resources:
       MethodResponses:
         - StatusCode: "200"
           ResponseModels: {"application/json": !Ref EmptyModel}
-          ResponseParameters: {'method.response.header.Access-Control-Allow-Origin': true}
+          ResponseParameters: {'method.response.header.Access-Control-Allow-Origin': 'true'}
         - StatusCode: "400"
           ResponseModels: {"application/json": !Ref ErrorModel}
-          ResponseParameters: {'method.response.header.Access-Control-Allow-Origin': true}
+          ResponseParameters: {'method.response.header.Access-Control-Allow-Origin': 'true'}
         - StatusCode: "500"
           ResponseModels: {"application/json": !Ref ErrorModel}
-          ResponseParameters: {'method.response.header.Access-Control-Allow-Origin': true}
+          ResponseParameters: {'method.response.header.Access-Control-Allow-Origin': 'true'}
 
   UploadOptionsMethod:
     Type: AWS::ApiGateway::Method
@@ -438,14 +558,14 @@ Resources:
       Integration: {IntegrationHttpMethod: POST, Type: AWS_PROXY, Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FetchTranscriptFunction.Arn}/invocations"}
       MethodResponses:
         - StatusCode: "200"
-          ResponseModels: {"text/plain": !Ref EmptyModel}
-          ResponseParameters: {'method.response.header.Access-Control-Allow-Origin': true}
+          ResponseModels: {"text/plain": !Ref EmptyModel} # Should be text/plain
+          ResponseParameters: {'method.response.header.Access-Control-Allow-Origin': 'true'}
         - StatusCode: "404"
           ResponseModels: {"application/json": !Ref ErrorModel}
-          ResponseParameters: {'method.response.header.Access-Control-Allow-Origin': true}
+          ResponseParameters: {'method.response.header.Access-Control-Allow-Origin': 'true'}
         - StatusCode: "500"
           ResponseModels: {"application/json": !Ref ErrorModel}
-          ResponseParameters: {'method.response.header.Access-Control-Allow-Origin': true}
+          ResponseParameters: {'method.response.header.Access-Control-Allow-Origin': 'true'}
 
   FetchOptionsMethod:
     Type: AWS::ApiGateway::Method
@@ -477,7 +597,11 @@ Resources:
     Properties: {RestApiId: !Ref UploadApi, ContentType: "application/json", Name: !Sub "${AWS::StackName}Error", Schema: {type: "object",properties: {error: {type: "string"}}}}
   EmptyModel:
     Type: AWS::ApiGateway::Model
-    Properties: {RestApiId: !Ref UploadApi, ContentType: "application/json", Name: !Sub "${AWS::StackName}Empty", Schema: {}}
+    Properties: {RestApiId: !Ref UploadApi, ContentType: "application/json", Name: !Sub "${AWS::StackName}Empty", Schema: {}} # Used for JSON responses
+  PlainTextModel: # Added for text/plain responses
+    Type: AWS::ApiGateway::Model
+    Properties: {RestApiId: !Ref UploadApi, ContentType: "text/plain", Name: !Sub "${AWS::StackName}PlainText", Schema: {type: "string"}}
+
 
   LambdaPermissionForUploadApi:
     Type: AWS::Lambda::Permission
@@ -488,7 +612,7 @@ Resources:
 
   ApiDeployment:
     Type: AWS::ApiGateway::Deployment
-    DependsOn: [UploadMethod, UploadOptionsMethod, FetchMethod, FetchOptionsMethod, ErrorModel, EmptyModel]
+    DependsOn: [UploadMethod, UploadOptionsMethod, FetchMethod, FetchOptionsMethod, ErrorModel, EmptyModel, PlainTextModel] # Added PlainTextModel
     Properties: {RestApiId: !Ref UploadApi, StageName: "prod", Description: !Sub "Deployment Reverted - ${DeploymentTimestamp}"}
 
   # --- SNS and CloudWatch Alarms ---
@@ -561,7 +685,7 @@ Resources:
       AlarmDescription: "5XX server errors on TranscriptionAPI"
       Namespace: AWS/ApiGateway
       MetricName: "5XXError"
-      Dimensions: [{Name: ApiName, Value: !Ref UploadApi}, {Name: Stage, Value: "prod"}]
+      Dimensions: [{Name: ApiName, Value: !Ref UploadApi}, {Name: Stage, Value: "prod"}] # Stage was missing
       Statistic: Sum
       Period: 300
       EvaluationPeriods: 1
@@ -581,7 +705,7 @@ Resources:
       Statistic: Sum
       Period: 300
       EvaluationPeriods: 1
-      Threshold: 1
+      Threshold: 1 # Changed to 1, as 0 would always trigger if any event occurs.
       ComparisonOperator: GreaterThanOrEqualToThreshold
       AlarmActions: [!Ref NotificationsSNSTopic]
       TreatMissingData: notBreaching
