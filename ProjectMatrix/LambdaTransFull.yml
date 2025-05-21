@@ -1,5 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: "Full stack to handle MP3 transcription with monolithic Lambda, DynamoDB, S3 lifecycle, and CloudWatch/SNS monitoring. (v2.2 features, v2.12 CORS, cfnresponse fix)"
+#Created by: Neorevn V3.4
 
 Parameters:
   TranscriptionBucketName:
@@ -17,7 +18,7 @@ Parameters:
   JsonTranscriptsExpirationDays:
     Type: Number
     Description: "Number of days after which to delete intermediate JSON transcripts from 'transcripts/json/'."
-    Default: 1 # Typically short-lived as they are processed into TXT
+    Default: 1
   TextTranscriptsExpirationDays:
     Type: Number
     Description: "Number of days after which to delete final text transcripts from 'transcripts/text/'."
@@ -32,14 +33,14 @@ Resources:
   TranscriptionBucket:
     Type: AWS::S3::Bucket
     DependsOn:
-      - AllowS3ToInvokeLambda # Ensure permission is set before bucket tries to use it for notification
+      - AllowS3ToInvokeLambda
     Properties:
       BucketName: !Ref TranscriptionBucketName
       CorsConfiguration:
         CorsRules:
           - AllowedHeaders: ["*"]
             AllowedMethods: [GET, PUT, POST, DELETE, HEAD]
-            AllowedOrigins: ["*"] # For local testing. Restrict in production.
+            AllowedOrigins: ["*"]
             ExposedHeaders: [ETag]
             MaxAge: 3000
       NotificationConfiguration:
@@ -85,9 +86,9 @@ Resources:
     Properties:
       FunctionName: !Sub "${AWS::StackName}-CreateBucketFolders"
       Runtime: python3.9
-      Handler: index.lambda_handler # The ZipFile content is treated as index.py
+      Handler: index.lambda_handler
       Role: !GetAtt CreateBucketFoldersRole.Arn
-      Timeout: 60 # Increased slightly, though 60 should be enough
+      Timeout: 60
       MemorySize: 128
       Code:
         ZipFile: |
@@ -230,7 +231,7 @@ Resources:
       Policies:
         - PolicyName: "CreateBucketFoldersPolicy"
           PolicyDocument: {Version: "2012-10-17", Statement: [
-              {Effect: Allow, Action: [s3:PutObject, s3:DeleteObject], Resource: !Sub "arn:aws:s3:::${TranscriptionBucketName}/*"}, # Added DeleteObject if you ever want to clean up the placeholder objects on delete
+              {Effect: Allow, Action: [s3:PutObject, s3:DeleteObject], Resource: !Sub "arn:aws:s3:::${TranscriptionBucketName}/*"},
               {Effect: Allow, Action: [s3:ListBucket], Resource: !Sub "arn:aws:s3:::${TranscriptionBucketName}"},
               {Effect: Allow, Action: ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"], Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-CreateBucketFolders*:*"} # Added wildcard for log stream
             ]}
@@ -272,7 +273,7 @@ Resources:
       Runtime: python3.9
       Handler: index.lambda_handler
       Role: !GetAtt LambdaExecutionRole.Arn
-      Timeout: 300 # Max 5 mins for polling. Long jobs might timeout.
+      Timeout: 300
       MemorySize: 256
       Environment:
         Variables:
@@ -476,7 +477,7 @@ Resources:
   # Lambda Permission for S3 to invoke TranscribeAudioFunction
   AllowS3ToInvokeLambda:
     Type: AWS::Lambda::Permission
-    DependsOn: TranscribeAudioFunction # Ensure Lambda exists before permission
+    DependsOn: TranscribeAudioFunction
     Properties:
       FunctionName: !GetAtt TranscribeAudioFunction.Arn
       Action: lambda:InvokeFunction
@@ -558,7 +559,7 @@ Resources:
       Integration: {IntegrationHttpMethod: POST, Type: AWS_PROXY, Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FetchTranscriptFunction.Arn}/invocations"}
       MethodResponses:
         - StatusCode: "200"
-          ResponseModels: {"text/plain": !Ref EmptyModel} # Should be text/plain
+          ResponseModels: {"text/plain": !Ref EmptyModel}
           ResponseParameters: {'method.response.header.Access-Control-Allow-Origin': 'true'}
         - StatusCode: "404"
           ResponseModels: {"application/json": !Ref ErrorModel}
@@ -597,8 +598,8 @@ Resources:
     Properties: {RestApiId: !Ref UploadApi, ContentType: "application/json", Name: !Sub "${AWS::StackName}Error", Schema: {type: "object",properties: {error: {type: "string"}}}}
   EmptyModel:
     Type: AWS::ApiGateway::Model
-    Properties: {RestApiId: !Ref UploadApi, ContentType: "application/json", Name: !Sub "${AWS::StackName}Empty", Schema: {}} # Used for JSON responses
-  PlainTextModel: # Added for text/plain responses
+    Properties: {RestApiId: !Ref UploadApi, ContentType: "application/json", Name: !Sub "${AWS::StackName}Empty", Schema: {}}
+  PlainTextModel:
     Type: AWS::ApiGateway::Model
     Properties: {RestApiId: !Ref UploadApi, ContentType: "text/plain", Name: !Sub "${AWS::StackName}PlainText", Schema: {type: "string"}}
 
@@ -612,7 +613,7 @@ Resources:
 
   ApiDeployment:
     Type: AWS::ApiGateway::Deployment
-    DependsOn: [UploadMethod, UploadOptionsMethod, FetchMethod, FetchOptionsMethod, ErrorModel, EmptyModel, PlainTextModel] # Added PlainTextModel
+    DependsOn: [UploadMethod, UploadOptionsMethod, FetchMethod, FetchOptionsMethod, ErrorModel, EmptyModel, PlainTextModel]
     Properties: {RestApiId: !Ref UploadApi, StageName: "prod", Description: !Sub "Deployment Reverted - ${DeploymentTimestamp}"}
 
   # --- SNS and CloudWatch Alarms ---
@@ -685,7 +686,7 @@ Resources:
       AlarmDescription: "5XX server errors on TranscriptionAPI"
       Namespace: AWS/ApiGateway
       MetricName: "5XXError"
-      Dimensions: [{Name: ApiName, Value: !Ref UploadApi}, {Name: Stage, Value: "prod"}] # Stage was missing
+      Dimensions: [{Name: ApiName, Value: !Ref UploadApi}, {Name: Stage, Value: "prod"}]
       Statistic: Sum
       Period: 300
       EvaluationPeriods: 1
@@ -705,7 +706,7 @@ Resources:
       Statistic: Sum
       Period: 300
       EvaluationPeriods: 1
-      Threshold: 1 # Changed to 1, as 0 would always trigger if any event occurs.
+      Threshold: 1
       ComparisonOperator: GreaterThanOrEqualToThreshold
       AlarmActions: [!Ref NotificationsSNSTopic]
       TreatMissingData: notBreaching
