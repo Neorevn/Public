@@ -1,4 +1,4 @@
-<!-- Created by: Neorevn V2.7-->
+<!-- Created by: Neorevn V2.8 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,23 +7,32 @@
     <title>The Matrix Has You...</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <style>
-        /* Styles from indexStyle.html */
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
         body {
             font-family: 'monospace', sans-serif;
-            text-align: center;
-            margin: 0;
-            overflow: hidden; 
             background-color: #000;
             color: #00ff00;
+            min-height: 100vh;
+            min-width: 100vw;
+            margin: 0;
+            padding: 0;
             display: flex;
             flex-direction: column;
-            justify-content: center; 
-            align-items: center; 
-            min-height: 100vh;
+            justify-content: center;
+            align-items: center;
+            width: 100vw;
+            height: 100vh;
             position: relative;
             z-index: 1;
+            box-sizing: border-box;
         }
-
         #matrixCanvasBackground {
             position: absolute;
             top: 0;
@@ -33,87 +42,50 @@
             z-index: -1;
             opacity: 0.65; 
         }
-
         #mainContentWrapper {
-            position: relative; 
+            position: relative;
             z-index: 2;
-            width: 90%; 
-            max-width: 680px; 
+            width: 90%;
+            max-width: 680px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 10px; 
-            box-sizing: border-box; 
-            /* Default transition for other state changes if needed, but animation will override for exit */
-            transition: opacity 0.7s ease-out, transform 0.7s ease-out; 
+            justify-content: center;
+            padding: 10px;
+            box-sizing: border-box;
+            transition: opacity 0.7s ease-out, transform 0.7s ease-out;
             text-align: center;
         }
-        /* This class is still used for the initial fade-out logic if polling fails or for other scenarios if adapted */
         #mainContentWrapper.content-fade-out {
             opacity: 0;
             transform: scale(0.8); 
             pointer-events: none;
         }
-
-        /* NEW Animation for main content exit: Zoom in then fade */
-        @keyframes mainContentExit {
-            0% {
-                opacity: 1;
-                transform: scale(1);
-            }
-            50% { /* Point where it's fully zoomed in */
-                opacity: 1; /* Still fully visible */
-                transform: scale(1.15); /* Zoomed in - adjust scale factor as desired */
-            }
-            100% { /* Faded out */
-                opacity: 0;
-                transform: scale(1.15); /* Stays zoomed while fading */
-            }
-        }
-
-        /* NEW Class to trigger the custom exit animation */
         #mainContentWrapper.custom-exit-animation {
-            animation: mainContentExit 0.8s forwards; /* Duration: 0.8s */
+            animation: mainContentExit 0.8s forwards;
             pointer-events: none; 
         }
-
-
-        /* Initial state for elements to be revealed (from indexStyle.html) */
+        @keyframes mainContentExit {
+            0% { opacity: 1; transform: scale(1);}
+            50% { opacity: 1; transform: scale(1.15);}
+            100% { opacity: 0; transform: scale(1.15);}
+        }
         .matrix-reveal-item {
-            opacity: 0; /* Start hidden */
+            opacity: 0;
             margin-bottom: 18px; 
         }
         .matrix-reveal-item:last-child {
             margin-bottom: 0;
         }
-
         @keyframes staticBurstReveal {
-            0% {
-                opacity: 0;
-                filter: brightness(4) contrast(300%) blur(5px) grayscale(50%);
-                transform: scale(0.95) skewX(-5deg);
-            }
-            20% { 
-                opacity: 0.7;
-                filter: brightness(2) contrast(200%) blur(2px) grayscale(0%);
-                transform: scale(1.03) skewX(3deg);
-            }
-            40% { 
-                opacity: 0.5;
-                filter: brightness(2.5) contrast(220%) blur(3px) grayscale(20%);
-                transform: scale(0.98) skewX(-2deg);
-            }
-            100% {
-                opacity: 1;
-                filter: none;
-                transform: scale(1) skewX(0deg);
-            }
+            0% { opacity: 0; filter: brightness(4) contrast(300%) blur(5px) grayscale(50%); transform: scale(0.95) skewX(-5deg);}
+            20% { opacity: 0.7; filter: brightness(2) contrast(200%) blur(2px) grayscale(0%); transform: scale(1.03) skewX(3deg);}
+            40% { opacity: 0.5; filter: brightness(2.5) contrast(220%) blur(3px) grayscale(20%); transform: scale(0.98) skewX(-2deg);}
+            100% { opacity: 1; filter: none; transform: scale(1) skewX(0deg);}
         }
-
         .matrix-reveal-item.revealed {
             animation: staticBurstReveal 0.4s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
         }
-        
         h1 { 
             color: #00ff00;
             text-shadow: 0 0 8px #00ff00, 0 0 15px #00ff00; 
@@ -125,7 +97,6 @@
             white-space: nowrap;
             align-self: center; 
         }
-        
         @keyframes flickerGlow {
             0%   { text-shadow: 0 0 8px #00ff00, 0 0 15px #00ff00, 0 0 2px #fff; }
             20%  { text-shadow: 0 0 12px #33ff33, 0 0 25px #33ff33, 0 0 5px #fff, 0 0 8px #00ff00; }
@@ -134,19 +105,29 @@
             80%  { text-shadow: 0 0 7px #00dd00, 0 0 14px #00dd00, 0 0 3px #ccffcc; }
             100% { text-shadow: 0 0 8px #00ff00, 0 0 15px #00ff00, 0 0 2px #fff; }
         }
-
         h1.header-glow-glitching {
             animation: flickerGlow 0.25s linear 2; 
         }
-
-        h2 { 
+        #subHeaderMain {
             color: #ffffff;
-            font-size: clamp(1.2em, 3.5vw, 1.0em); 
-            margin-bottom: 0;  
-            max-width: 95%; 
-            white-space: nowrap; 
+            font-size: clamp(1.2em, 3.5vw, 1.0em);
+            margin-bottom: 0;
+            max-width: 95%;
+            text-align: center;
+            display: block;
+            white-space: normal;
         }
-
+        #subHeaderSub {
+            color: #fff;
+            font-size: clamp(1.1em, 3vw, 0.95em);
+            margin-bottom: 0;
+            max-width: 100%;
+            text-align: center;
+            margin-left: 0;
+            display: block;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
         form { 
             background-color: transparent;
             padding: 0;
@@ -159,12 +140,10 @@
             flex-direction: column;
             align-items: center;
         }
-
         form div {
             margin-bottom: 10px; 
             width: 100%;
         }
-
         label {
             display: block;
             margin-bottom: 5px; 
@@ -172,7 +151,6 @@
             color: #00ff00;
             font-size: 1em; 
         }
-
         input[type="file"] {
             padding: 10px; 
             border: 1px solid #006400; 
@@ -185,7 +163,6 @@
             cursor: pointer;
             position: relative; 
         }
-
         input[type="file"]::-webkit-file-upload-button {
             background-color: #000; 
             color: #00ff00; 
@@ -200,13 +177,11 @@
             -webkit-appearance: none; 
             appearance: none;
         }
-
         input[type="file"]::-webkit-file-upload-button:hover {
             background-color: #00ff00; 
             color: #000; 
             box-shadow: 0 0 10px #00ff00; 
         }
-
         input[type="file"]::file-selector-button { 
             background-color: #000;
             color: #00ff00;
@@ -219,13 +194,11 @@
             box-shadow: 0 0 3px #00ff00; 
             margin-right: 8px; 
         }
-
         input[type="file"]::file-selector-button:hover { 
             background-color: #00ff00;
             color: #000;
             box-shadow: 0 0 10px #00ff00; 
         }
-
         .button-container {
             display: flex;
             justify-content: center;
@@ -233,7 +206,6 @@
             width: 100%;
             flex-wrap: wrap;
         }
-
         button {
             padding: 12px 25px; 
             border: none;
@@ -245,7 +217,6 @@
             margin: 5px;
             color: #fff; 
         }
-
         @keyframes pulseRed {
             0% { box-shadow: 0 0 5px #ff0000, 0 0 10px #cc0000; }
             50% { box-shadow: 0 0 15px #ff3333, 0 0 25px #ff0000; }
@@ -260,10 +231,8 @@
             animation-play-state: paused; 
             box-shadow: 0 0 20px #ff0000, 0 0 30px #ff3333;
         }
-        
         #bluePillButton { background-color: #00008b; }
-        #bluePillButton:hover { background-color: #0000cd; box-shadow: 0 0 15px #0000cd; }
-
+        #bluePillButton:hover { background-color: #0000ec; box-shadow: 0 0 15px #0000fd; }
         #message { 
             margin-top: 0; 
             font-size: 1.1em; 
@@ -273,7 +242,6 @@
             max-width: 80%; 
             white-space: pre-wrap;
         }
-        
         #audioVisualizerCanvas { 
             width: 80%;
             max-width: 600px;
@@ -284,66 +252,37 @@
             display: none; 
             box-shadow: 0 0 10px #00ff00;
         }
-
         #transcript {
-            padding: 20px;
+            margin: auto;
+            left: unset;
+            top: unset;
+            transform: none;
+            position: relative;
+            display: none;
+            width: 80%;
+            max-width: 800px;
+            max-height: 70vh;
+            overflow-y: auto;
+            box-shadow: 0 0 20px #00ff00, 0 0 30px #00dd00;
+            background-color: rgba(0, 0, 0, 0.9);
             border: 1px solid #006400;
             border-radius: 8px;
-            background-color: rgba(0, 0, 0, 0.9); 
             text-align: left;
-            white-space: pre-wrap;
             font-family: 'monospace', sans-serif;
             font-size: 1em;
             color: #00ff00;
-            display: none; 
-            width: 80%;
-            max-width: 800px;
-            max-height: 70vh; 
-            overflow-y: auto; 
-            box-shadow: 0 0 20px #00ff00, 0 0 30px #00dd00; 
-            position: fixed; 
-            top: 50%;
-            left: 50%;
-            z-index: 10; 
-            opacity: 0; 
-            transform: translate(-50%, -50%) scale(0.3); 
-            /* Animation for transcript entrance */
-            transition: opacity 1s ease-in-out, transform 1s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            opacity: 0;
+            transition: opacity 1s ease-in-out, transform 1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
-        #transcript.visible { 
-            display: block; /* Will be set by JS before adding class for animation */
-            opacity: 1; 
-            transform: translate(-50%, -50%) scale(1); 
+        #transcript.visible {
+            display: block;
+            opacity: 1;
+            transform: none;
+            margin: auto;
         }
-        #transcript h2 { font-size: 1.7em; margin-bottom: 15px; text-align: center; color: #00ff00; text-shadow: 0 0 10px #00ff00; }
-        #transcriptText { line-height: 1.6; font-size: 1.1em; }
-        
-        .glitch-char { 
-            display: inline-block; 
-            animation: textGlitch 0.1s 1;
-        }
-        @keyframes textGlitch {
-            0%, 100% { opacity: 1; transform: none; }
-            50% { opacity: 0.7; transform: skewX(-10deg) skewY(5deg) scale(1.1); color: #33ff33; }
-        }
-
         #finalMessage {
-            position: fixed;
-            bottom: 30px; 
             left: 50%;
             transform: translateX(-50%);
-            font-size: 1.3em;
-            color: #00ff00;
-            text-shadow: 0 0 8px #00ff00;
-            z-index: 11; 
-            opacity: 0;
-            transition: opacity 0.5s ease-in-out;
-            padding: 10px 20px;
-            background-color: rgba(0,0,0,0.7);
-            border-radius: 5px;
-        }
-        #finalMessage.visible {
-            opacity: 1;
         }
     </style>
 </head>
@@ -351,7 +290,8 @@
     <canvas id="matrixCanvasBackground"></canvas> 
     <div id="mainContentWrapper">
         <h1 id="mainHeader" class="matrix-reveal-item">The Matrix Has You...</h1>
-        <h2 id="subHeader" class="matrix-reveal-item">Choose an MP3 to upload. I'll show you how deep the rabbit hole goes.</h2>
+        <h2 id="subHeaderMain" class="matrix-reveal-item">Select an MP3 Recording to upload</h2>
+        <h2 id="subHeaderSub" class="matrix-reveal-item">Choose the Red pill or Blue pill and I'll show you how deep the rabbit hole goes.</h2>
         <form id="uploadForm" class="matrix-reveal-item">
             <div>
                 <label for="fileInput">Select MP3:</label>
@@ -365,7 +305,6 @@
         <div id="message" class="matrix-reveal-item">Follow the white rabbit, Neo.</div>
         <canvas id="audioVisualizerCanvas"></canvas> 
     </div>
-    
     <div id="transcript">
         <h2>Signal Decryption:</h2>
         <p id="transcriptText"></p>
@@ -376,7 +315,8 @@
         // DOM Elements
         const mainContentWrapper = document.getElementById("mainContentWrapper");
         const mainHeader = document.getElementById("mainHeader"); 
-        const subHeader = document.getElementById("subHeader");   
+        const subHeaderMain = document.getElementById("subHeaderMain");
+        const subHeaderSub = document.getElementById("subHeaderSub");
         const uploadForm = document.getElementById("uploadForm");
         const fileInput = document.getElementById("fileInput");
         const messageDiv = document.getElementById("message");
@@ -521,7 +461,7 @@
             finalMessageDiv.classList.add('visible'); 
         }
         
-        const elementsToReveal = [mainHeader, subHeader, uploadForm, messageDiv];
+        const elementsToReveal = [mainHeader, subHeaderMain, subHeaderSub, uploadForm, messageDiv];
         let headerGlitchIntervalId = null; 
         let initialRevealDone = false; 
 
@@ -591,9 +531,9 @@
         }
 
         function resetUIAndReveal(isInitialLoad = false) { 
-            mainContentWrapper.classList.remove('content-fade-out'); // Remove old fade-out class
-            mainContentWrapper.classList.remove('custom-exit-animation'); // Remove new exit animation class
-            mainContentWrapper.style.animation = ''; // Clear any inline animation properties
+            mainContentWrapper.classList.remove('content-fade-out');
+            mainContentWrapper.classList.remove('custom-exit-animation');
+            mainContentWrapper.style.animation = '';
             mainContentWrapper.style.opacity = '1';
             mainContentWrapper.style.transform = 'scale(1)';
             mainContentWrapper.style.pointerEvents = 'auto';
@@ -613,7 +553,8 @@
                 });
             }
             mainHeader.textContent = "The Matrix Has You...";
-            subHeader.textContent = "Choose an MP3 to upload. I'll show you how deep the rabbit hole goes.";
+            subHeaderMain.textContent = "Select an MP3 Recording to upload";
+            subHeaderSub.textContent = "Choose the Red pill or Blue pill and I'll show you how deep the rabbit hole goes.";
             messageDiv.textContent = "Follow the white rabbit, Neo.";
 
             if (headerGlitchIntervalId) { 
@@ -730,31 +671,25 @@
                             const transcriptText = await pollForTranscript(baseFileName);
                             
                             playSound('pageTransition');
-                            // Apply the new custom exit animation to the main content wrapper
-                            mainContentWrapper.classList.remove('content-fade-out'); // Ensure old one is removed
+                            mainContentWrapper.classList.remove('content-fade-out');
                             mainContentWrapper.classList.add('custom-exit-animation'); 
                             operatorLog("Main interface zooming and fading out...");
                             if (headerGlitchIntervalId) clearInterval(headerGlitchIntervalId); 
 
-                            // Wait for the custom-exit-animation to complete (0.8s)
                             setTimeout(() => { 
-                                mainContentWrapper.style.display = 'none'; // Hide main content after its animation
-                                
-                                transcriptDiv.style.display = 'block'; // Make transcript container visible
-                                void transcriptDiv.offsetWidth; // Force reflow to ensure animation plays
-                                transcriptDiv.classList.add('visible'); // Add class to trigger transcript's entrance animation
+                                mainContentWrapper.style.display = 'none'; 
+                                transcriptDiv.style.display = 'block';
+                                void transcriptDiv.offsetWidth;
+                                transcriptDiv.classList.add('visible');
                                 operatorLog("Transcript display initiated.");
-                                
-                                // Wait for transcript's entrance animation to complete (1s)
                                 setTimeout(() => { 
                                    document.querySelector('#transcript h2').textContent = "Signal Decryption:";
                                    playSound('transcriptReady');
                                    displayMatrixTextEffect(transcriptTextParagraph, transcriptText); 
                                    displayFinalMessage("success"); 
                                    fileInput.value = ''; 
-                                }, 1000); // Duration of transcript's own animation
-
-                            }, 800); // Duration of mainContentWrapper's custom-exit-animation
+                                }, 1000);
+                            }, 800);
 
                         } else {
                             let errorMessage = responseText;
@@ -826,7 +761,6 @@
                         </pre>
                     </div>
                 `;
-                // Remove scrollbars
                 document.documentElement.style.overflow = "hidden";
                 document.body.style.overflow = "hidden";
                 document.body.style.margin = "0";
