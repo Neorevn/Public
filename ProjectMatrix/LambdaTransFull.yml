@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: "Full stack to handle MP3 transcription with monolithic Lambda, DynamoDB, S3 lifecycle, and CloudWatch/SNS monitoring. (v2.2 features, v2.12 CORS, cfnresponse fix)"
-#Created by: Neorevn V3.4
+#Created by: Neorevn V3.5
 
 Parameters:
   TranscriptionBucketName:
@@ -45,7 +45,8 @@ Resources:
         CorsRules:
           - AllowedHeaders: ["*"]
             AllowedMethods: [GET, PUT, POST, DELETE, HEAD]
-            AllowedOrigins: !Ref CORSOrigin
+            AllowedOrigins: 
+              - !Ref CORSOrigin
             ExposedHeaders: [ETag]
             MaxAge: 3000
       NotificationConfiguration:
@@ -246,10 +247,13 @@ Resources:
     Type: AWS::DynamoDB::Table
     Properties:
       TableName: !Sub "${AWS::StackName}-TranscriptionMetadata"
-      AttributeDefinitions: [{AttributeName: "jobId", AttributeType: "S"}]
-      KeySchema: [{AttributeName: "jobId", KeyType: "HASH"}]
-      ProvisionedThroughput: {ReadCapacityUnits: 1, WriteCapacityUnits: 1}
-      BillingMode: PROVISIONED
+      AttributeDefinitions:
+        - AttributeName: "jobId"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "jobId"
+          KeyType: "HASH"
+      BillingMode: PAY_PER_REQUEST
 
   # IAM Role for the TranscribeAudioFunction, UploadFileFunction, and FetchTranscriptFunction Lambdas
   LambdaExecutionRole:
@@ -645,7 +649,7 @@ Resources:
       MetricName: Errors
       Dimensions: [{Name: FunctionName, Value: !Ref TranscribeAudioFunction}]
       Statistic: Sum
-      Period: 300
+      Period: 120
       EvaluationPeriods: 1
       Threshold: 0
       ComparisonOperator: GreaterThanThreshold
@@ -661,7 +665,7 @@ Resources:
       MetricName: Errors
       Dimensions: [{Name: FunctionName, Value: !Ref UploadFileFunction}]
       Statistic: Sum
-      Period: 300
+      Period: 60
       EvaluationPeriods: 1
       Threshold: 0
       ComparisonOperator: GreaterThanThreshold
@@ -677,7 +681,7 @@ Resources:
       MetricName: Errors
       Dimensions: [{Name: FunctionName, Value: !Ref FetchTranscriptFunction}]
       Statistic: Sum
-      Period: 300
+      Period: 120
       EvaluationPeriods: 1
       Threshold: 0
       ComparisonOperator: GreaterThanThreshold
@@ -693,7 +697,7 @@ Resources:
       MetricName: "5XXError"
       Dimensions: [{Name: ApiName, Value: !Ref UploadApi}, {Name: Stage, Value: "prod"}]
       Statistic: Sum
-      Period: 300
+      Period: 120
       EvaluationPeriods: 1
       Threshold: 0
       ComparisonOperator: GreaterThanThreshold

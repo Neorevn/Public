@@ -367,7 +367,7 @@
     </div>
     
     <div id="transcript">
-        <h2>Transcription:</h2>
+        <h2>Signal Decryption:</h2>
         <p id="transcriptText"></p>
     </div>
     <div id="finalMessage"></div> 
@@ -747,6 +747,7 @@
                                 
                                 // Wait for transcript's entrance animation to complete (1s)
                                 setTimeout(() => { 
+                                   document.querySelector('#transcript h2').textContent = "Signal Decryption:";
                                    playSound('transcriptReady');
                                    displayMatrixTextEffect(transcriptTextParagraph, transcriptText); 
                                    displayFinalMessage("success"); 
