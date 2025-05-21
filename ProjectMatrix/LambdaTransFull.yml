@@ -11,6 +11,10 @@ Parameters:
     Type: String
     Description: "Email address to receive notifications for alarms."
     Default: "YourEmail" # Please change this
+  CORSOrigin:
+    Type: String
+    Description: "CORS origin for API Gateway. Set to '*' for all origins or specify a domain."
+    Default: "YourDomain" # Please change this
   UploadsExpirationDays:
     Type: Number
     Description: "Number of days after which to delete files from the 'uploads/' prefix."
@@ -28,6 +32,7 @@ Parameters:
     Description: "Timestamp or unique string to force API deployment. Change this value to redeploy API."
     Default: "YourStackVersion"
 
+
 Resources:
   # S3 Bucket for uploads and transcripts
   TranscriptionBucket:
@@ -40,7 +45,7 @@ Resources:
         CorsRules:
           - AllowedHeaders: ["*"]
             AllowedMethods: [GET, PUT, POST, DELETE, HEAD]
-            AllowedOrigins: ["*"]
+            AllowedOrigins: !Ref CORSOrigin
             ExposedHeaders: [ETag]
             MaxAge: 3000
       NotificationConfiguration:
