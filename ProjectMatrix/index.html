@@ -1,4 +1,4 @@
-<!-- Created by: Neorevn V2.8 -->
+<!-- Created by: Neorevn V2.9 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -414,7 +414,7 @@
         const successSynth = new Tone.PolySynth(Tone.Synth, { volume: -10, oscillator: { type: "fatsine", count: 3, spread: 40 }, envelope: { attack: 0.01, decay: 0.5, sustain: 0.2, release: 1.0 }, filter: { type: "lowpass", frequency: 1500, Q: 0.8 }, filterEnvelope: { attack: 0.05, decay: 0.3, sustain: 0.1, release: 0.6, baseFrequency: 400, octaves: 2.5 } }).connect(masterReverb);
         const errorSynth = new Tone.MetalSynth({ frequency: 30, envelope: { attack: 0.002, decay: 0.5, release: 0.3 }, harmonicity: 5.1, modulationIndex: 25, resonance: 1000, octaves: 1 }).connect(masterReverb); 
         const transitionSynth = new Tone.MonoSynth({ volume: -10, oscillator: { type: "fatsquare", count: 4, spread: 20 }, envelope: { attack: 1.2, decay: 0.4, sustain: 0.7, release: 2.5 }, filterEnvelope: { attack: 1.2, decay: 0.2, sustain: 0.5, release: 2.5, baseFrequency: 60, octaves: 6 } }).connect(masterReverb);
-        const elementRevealSound = new Tone.FMSynth({ harmonicity: 0.6, modulationIndex: 10, oscillator: { type: "sine" }, envelope: { attack: 0.005, decay: 0.12, sustain: 0.005, release: 0.2 }, modulation: { type: "sawtooth" }, modulationEnvelope: { attack: 0.01, decay: 0.08, sustain: 0, release: 0.15 }, volume: -8 }).connect(masterDelay);
+        const elementRevealSound = new Tone.FMSynth({ harmonicity: 0.6, modulationIndex: 10, oscillator: { type: "sine" }, envelope: { attack: 0.005, decay: 0.12, sustain: 0.005, release: 0.2 }, modulation: { type: "sawtooth" }, modulationEnvelope: { attack: 0.01, decay: 0.08, sustain: 0, release: 0.15 }, volume: +10 }).connect(masterDelay);
         const formRevealSound = new Tone.Synth({ oscillator: {type: "pulse", width: 0.7}, envelope: {attack: 0.05, decay:0.3, sustain:0.1, release:0.4}, volume: -10 }).connect(masterReverb); 
 
         function playSound(type) { 
