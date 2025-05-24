@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: "Full stack to handle MP3 transcription with monolithic Lambda, DynamoDB, S3 lifecycle, and CloudWatch/SNS monitoring. (v2.2 features, v2.12 CORS, cfnresponse fix)"
+Description: "Full stack to handle MP3 transcription with API Gateway, 3 Lambdas, DynamoDB, S3+lifecycle, and CloudWatch/SNS monitoring."
 #Created by: Neorevn V3.5
 
 Parameters:
