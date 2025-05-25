@@ -1,6 +1,6 @@
-<!-- Created by: Neorevn V2.9 -->
 <!DOCTYPE html>
 <html lang="en">
+<!--Created by Neorevn v3.5--> 
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -14,6 +14,7 @@
             width: 100vw;
             min-height: 100vh;
             box-sizing: border-box;
+            overflow: hidden; 
         }
         body {
             font-family: 'monospace', sans-serif;
@@ -33,6 +34,7 @@
             z-index: 1;
             box-sizing: border-box;
         }
+
         #matrixCanvasBackground {
             position: absolute;
             top: 0;
@@ -55,6 +57,10 @@
             box-sizing: border-box;
             transition: opacity 0.7s ease-out, transform 0.7s ease-out;
             text-align: center;
+            opacity: 0; /* Initially hidden, revealed by JS */
+        }
+        #mainContentWrapper.visible {
+            opacity: 1;
         }
         #mainContentWrapper.content-fade-out {
             opacity: 0;
@@ -73,18 +79,23 @@
         .matrix-reveal-item {
             opacity: 0;
             margin-bottom: 18px; 
+            /* Removed transition to allow animation to fully control reveal */
+            /* transition: opacity 0.5s ease-out, transform 0.5s ease-out; */
+            transform: translateY(20px); 
         }
         .matrix-reveal-item:last-child {
             margin-bottom: 0;
         }
         @keyframes staticBurstReveal {
-            0% { opacity: 0; filter: brightness(4) contrast(300%) blur(5px) grayscale(50%); transform: scale(0.95) skewX(-5deg);}
-            20% { opacity: 0.7; filter: brightness(2) contrast(200%) blur(2px) grayscale(0%); transform: scale(1.03) skewX(3deg);}
-            40% { opacity: 0.5; filter: brightness(2.5) contrast(220%) blur(3px) grayscale(20%); transform: scale(0.98) skewX(-2deg);}
-            100% { opacity: 1; filter: none; transform: scale(1) skewX(0deg);}
+            0% { opacity: 0; filter: brightness(4) contrast(300%) blur(5px) grayscale(50%); transform: scale(0.95) skewX(-5deg) translateY(20px);}
+            20% { opacity: 0.7; filter: brightness(2) contrast(200%) blur(2px) grayscale(0%); transform: scale(1.03) skewX(3deg) translateY(0);}
+            40% { opacity: 0.5; filter: brightness(2.5) contrast(220%) blur(3px) grayscale(20%); transform: scale(0.98) skewX(-2deg) translateY(0);}
+            100% { opacity: 1; filter: none; transform: scale(1) skewX(0deg) translateY(0);}
         }
         .matrix-reveal-item.revealed {
-            animation: staticBurstReveal 0.4s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+            /* opacity: 1; */ /* Controlled by animation */
+            /* transform: translateY(0); */ /* Controlled by animation */
+            animation: staticBurstReveal 0.5s cubic-bezier(0.1, 0.9, 0.2, 1) forwards; /* Increased duration slightly */
         }
         h1 { 
             color: #00ff00;
@@ -107,6 +118,16 @@
         }
         h1.header-glow-glitching {
             animation: flickerGlow 0.25s linear 2; 
+        }
+        .text-glitch-subtle {
+            animation: subtleGlitch 3s infinite alternate;
+        }
+        @keyframes subtleGlitch {
+            0%, 100% { transform: skewX(0deg); opacity: 1; }
+            5% { transform: skewX(0.2deg); opacity: 0.98; }
+            10% { transform: skewX(-0.1deg); opacity: 1; }
+            15% { text-shadow: 0 0 9px #00ff00, 0 0 16px #00ff00, 0 0 3px #88ff88; }
+            20% { transform: skewX(0deg); opacity: 1; }
         }
         #subHeaderMain {
             color: #ffffff;
@@ -162,6 +183,10 @@
             font-size: 1em; 
             cursor: pointer;
             position: relative; 
+            transition: box-shadow 0.2s ease-in-out;
+        }
+        input[type="file"]:hover, input[type="file"]:focus {
+            box-shadow: 0 0 8px #00ff00, 0 0 3px #00ff00 inset;
         }
         input[type="file"]::-webkit-file-upload-button {
             background-color: #000; 
@@ -212,10 +237,16 @@
             border-radius: 4px; 
             cursor: pointer;
             font-size: 1.1em; 
-            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.1s ease;
             box-shadow: 0 0 5px #00ff00;
             margin: 5px;
             color: #fff; 
+        }
+        button:hover {
+            transform: translateY(-2px);
+        }
+        button:active {
+            transform: translateY(0px);
         }
         @keyframes pulseRed {
             0% { box-shadow: 0 0 5px #ff0000, 0 0 10px #cc0000; }
@@ -241,6 +272,7 @@
             text-shadow: 0 0 5px #00ff00;
             max-width: 80%; 
             white-space: pre-wrap;
+            transition: color 0.2s, text-shadow 0.2s; 
         }
         #audioVisualizerCanvas { 
             width: 80%;
@@ -280,15 +312,28 @@
             transform: none;
             margin: auto;
         }
+        #transcript h2 {
+            text-align: center;
+        }
         #finalMessage {
+            position: fixed;
             left: 50%;
+            bottom: 32px;
             transform: translateX(-50%);
+            width: max-content;
+            text-align: center;
+            color: #00ff00;
+            font-size: 1.15em;
+            z-index: 10;
+            pointer-events: none;
+            text-shadow: 0 0 8px #00ff00, 0 0 15px #00ff00;
         }
     </style>
 </head>
 <body>
     <canvas id="matrixCanvasBackground"></canvas> 
-    <div id="mainContentWrapper">
+    
+    <div id="mainContentWrapper"> 
         <h1 id="mainHeader" class="matrix-reveal-item">The Matrix Has You...</h1>
         <h2 id="subHeaderMain" class="matrix-reveal-item">Select an MP3 Recording to upload</h2>
         <h2 id="subHeaderSub" class="matrix-reveal-item">Choose the Red pill or Blue pill and I'll show you how deep the rabbit hole goes.</h2>
@@ -305,10 +350,12 @@
         <div id="message" class="matrix-reveal-item">Follow the white rabbit, Neo.</div>
         <canvas id="audioVisualizerCanvas"></canvas> 
     </div>
+
     <div id="transcript">
         <h2>Signal Decryption:</h2>
         <p id="transcriptText"></p>
     </div>
+    
     <div id="finalMessage"></div> 
 
     <script>
@@ -336,6 +383,9 @@
         const matrixCanvas = document.getElementById('matrixCanvasBackground');
         const matrixCtx = matrixCanvas.getContext('2d');
         
+        let mouseX = -1000; 
+        let mouseY = -1000;
+
         function sizeMatrixCanvas() {
             matrixCanvas.width = window.innerWidth; 
             matrixCanvas.height = window.innerHeight;
@@ -359,13 +409,32 @@
         function drawMatrix() { 
             matrixCtx.fillStyle = `rgba(0, 0, 0, ${matrixRainDensityFactor})`; 
             matrixCtx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height); 
-            matrixCtx.fillStyle = '#00ff00'; 
-            matrixCtx.font = matrixFontSize + 'px monospace'; 
             
             for (let i = 0; i < matrixDrops.length; i++) { 
                 const text = matrixChars.charAt(Math.floor(Math.random() * matrixChars.length)); 
+                const xPos = i * matrixFontSize;
                 const yPos = matrixDrops[i] * matrixFontSize;
-                matrixCtx.fillText(text, i * matrixFontSize, yPos); 
+
+                const distanceToMouse = Math.sqrt(Math.pow(xPos - mouseX, 2) + Math.pow(yPos - mouseY, 2));
+                
+                let currentFontSize = matrixFontSize;
+                let currentFillStyle = '#00ff00'; // Standard green
+
+                if (distanceToMouse < 80) { // Increased interaction radius to 80
+                    currentFillStyle = '#ffffff'; // Change to white for high contrast
+                    currentFontSize = matrixFontSize * 1.2; // Slightly larger font
+                     // Make drops near mouse fall slightly faster and reset more readily
+                    if (Math.random() > 0.1) matrixDrops[i]++; // 90% chance of extra increment
+                    if (yPos > matrixCanvas.height && Math.random() > 0.90) { // Higher chance of reset
+                         matrixDrops[i] = 0;
+                    }
+                } else if (distanceToMouse < 150) { // A secondary, less intense interaction ring
+                     currentFillStyle = '#50ff50'; // A brighter green
+                }
+                
+                matrixCtx.font = currentFontSize + 'px monospace'; 
+                matrixCtx.fillStyle = currentFillStyle;
+                matrixCtx.fillText(text, xPos, yPos);
                 
                 if (yPos > matrixCanvas.height && Math.random() > 0.975) { 
                     matrixDrops[i] = 0; 
@@ -377,6 +446,15 @@
             clearInterval(matrixInterval); 
             matrixInterval = setInterval(drawMatrix, matrixRainSpeed); 
         }
+        
+        matrixCanvas.addEventListener('mousemove', (event) => {
+            mouseX = event.clientX;
+            mouseY = event.clientY;
+        });
+        matrixCanvas.addEventListener('mouseleave', () => {
+            mouseX = -1000; 
+            mouseY = -1000;
+        });
         
         sizeMatrixCanvas(); 
         updateMatrixAnimation(); 
@@ -404,7 +482,7 @@
         function stopVisualizer() { 
             if (visualizerAnimationId) cancelAnimationFrame(visualizerAnimationId); 
             if (source && source.disconnect) source.disconnect(); 
-            audioVisualizerCanvas.style.display = 'none'; // Hide visualizer when stopped
+            audioVisualizerCanvas.style.display = 'none';
         }
 
         const masterReverb = new Tone.Reverb(0.5).toDestination(); 
@@ -416,6 +494,9 @@
         const transitionSynth = new Tone.MonoSynth({ volume: -10, oscillator: { type: "fatsquare", count: 4, spread: 20 }, envelope: { attack: 1.2, decay: 0.4, sustain: 0.7, release: 2.5 }, filterEnvelope: { attack: 1.2, decay: 0.2, sustain: 0.5, release: 2.5, baseFrequency: 60, octaves: 6 } }).connect(masterReverb);
         const elementRevealSound = new Tone.FMSynth({ harmonicity: 0.6, modulationIndex: 10, oscillator: { type: "sine" }, envelope: { attack: 0.005, decay: 0.12, sustain: 0.005, release: 0.2 }, modulation: { type: "sawtooth" }, modulationEnvelope: { attack: 0.01, decay: 0.08, sustain: 0, release: 0.15 }, volume: +10 }).connect(masterDelay);
         const formRevealSound = new Tone.Synth({ oscillator: {type: "pulse", width: 0.7}, envelope: {attack: 0.05, decay:0.3, sustain:0.1, release:0.4}, volume: -10 }).connect(masterReverb); 
+        const glitchSound = new Tone.NoiseSynth({ noise: { type: 'pink' }, envelope: { attack: 0.001, decay: 0.02, sustain: 0 }, volume: -12 }).connect(masterReverb); // Increased volume
+        const headerGlitchSFX = new Tone.FMSynth({ harmonicity: 3.01, modulationIndex: 14, detune: 0, oscillator: { type: "triangle" }, envelope: { attack: 0.001, decay: 0.01, sustain: 0, release: 0.04 }, modulation: { type: "square" }, modulationEnvelope: { attack: 0.002, decay: 0.005, sustain: 0, release: 0.01 }, volume: -15 }).connect(masterReverb); // Increased volume
+
 
         function playSound(type) { 
             if (typeof Tone !== 'undefined' && Tone.start) {
@@ -440,6 +521,12 @@
                 case 'formReveal': 
                     formRevealSound.triggerAttackRelease("E3", "8n", now);
                     break;
+                case 'textGlitch': 
+                    glitchSound.triggerAttackRelease("32n", now + Math.random() * 0.05);
+                    break;
+                case 'headerGlitch': 
+                    headerGlitchSFX.triggerAttackRelease("C4", "32n", now + Math.random() * 0.02); 
+                    break;
             } 
         }
         fileInput.addEventListener('change', () => { playSound('select'); });
@@ -447,14 +534,53 @@
         const matrixMessages = { preparing: "Verifying neural link...", uploading: "Injecting data stream into the Construct...", uploadConfirmed: "Mainline connection active. Stand by, Neo.", polling: ["Pinging the Oracle...", "Escaping Agent detection patterns...", "There is no spoon... only code.", "Ciphering reality streams...", "Awaiting decryption key...", "Searching for residual self-image...", "The Architect is thinking...", "Morpheus is on the line..."], success: "Message from Zion: Transcript decrypted.", errorGeneric: "System Failure! A critical error in the Matrix.", errorTranscript: "Data corruption! Unable to retrieve transcript.", timeout: "Signal lost. The construct is unstable. Try again." };
         let currentPollingMessageIndex = 0;
 
+        const glitchCharsList = ['█', '▓', '▒', '░', '_', '#', '$', '%', '&', '*', '>', '<', '/', '\\', '!', '?', matrixChars.charAt(Math.floor(Math.random() * matrixChars.length))]; 
+
+        function scrambleTextEffect(element, originalText, duration = 500, onComplete) {
+            let intervalId;
+            const startTime = Date.now();
+            playSound('textGlitch'); 
+
+            function updateText() {
+                const elapsedTime = Date.now() - startTime;
+                if (elapsedTime >= duration) {
+                    clearInterval(intervalId);
+                    element.textContent = originalText;
+                    element.style.color = '#00ff00'; 
+                    element.style.textShadow = '0 0 5px #00ff00'; 
+                    if (onComplete) onComplete();
+                    return;
+                }
+
+                let scrambled = '';
+                for (let i = 0; i < originalText.length; i++) {
+                    if (Math.random() > (elapsedTime / duration) * 0.7 + 0.3 || originalText[i] === ' ') { 
+                        scrambled += originalText[i];
+                    } else {
+                        scrambled += glitchCharsList[Math.floor(Math.random() * glitchCharsList.length)];
+                    }
+                }
+                element.textContent = scrambled;
+                if (Math.random() < 0.15) {
+                    element.style.color = '#88ff88';
+                    element.style.textShadow = '0 0 8px #88ff88';
+                } else {
+                    element.style.color = '#00ff00';
+                    element.style.textShadow = '0 0 5px #00ff00';
+                }
+            }
+            intervalId = setInterval(updateText, 40);
+            updateText(); 
+        }
+
+
         function displayPollingMessage(details = "") { 
             let message = matrixMessages.polling[currentPollingMessageIndex];
             currentPollingMessageIndex = (currentPollingMessageIndex + 1) % matrixMessages.polling.length;
-            playSound('processingTick');
-            messageDiv.textContent = `${message} ${details}`;
+            scrambleTextEffect(messageDiv, `${message} ${details}`);
         }
         function displayStatusMessage(type, details = "") { 
-            messageDiv.textContent = `${matrixMessages[type] || type} ${details}`; 
+            scrambleTextEffect(messageDiv, `${matrixMessages[type] || type} ${details}`);
         }
         function displayFinalMessage(type, details = "") { 
             finalMessageDiv.textContent = `${matrixMessages[type] || type} ${details}`; 
@@ -468,7 +594,9 @@
         function initiateUIReveal() {
             if (initialRevealDone) return; 
             operatorLog("Boot sequence initiated... UI elements will materialize shortly.");
-            const initialPageLoadDelay = 700; 
+            mainContentWrapper.classList.add('visible'); 
+
+            const initialPageLoadDelay = 200; 
             const staggerBetweenElements = 250;   
 
             setTimeout(() => { 
@@ -480,6 +608,7 @@
                            operatorLog(`Materializing: ${el.id || el.tagName}`);
                            if (el.id === 'mainHeader' && !headerGlitchIntervalId) {
                                setTimeout(startContinuousHeaderGlitch, 500); 
+                               mainHeader.classList.add('text-glitch-subtle'); 
                            }
                         }
                     }, index * staggerBetweenElements); 
@@ -493,15 +622,15 @@
             headerGlitchIntervalId = setInterval(() => {
                 if (!mainHeader.classList.contains('revealed')) return; 
                 mainHeader.classList.add('header-glow-glitching');
+                playSound('headerGlitch'); 
                 setTimeout(() => {
                     mainHeader.classList.remove('header-glow-glitching');
                 }, 250); 
-            }, 3000 + Math.random() * 2000); 
+            }, 4000 + Math.random() * 3000); 
             operatorLog("Continuous header glow glitch activated.");
         }
 
-        const glitchCharsList = ['█', '▓', '▒', '░', '_', '#', '$', '%', '&', '*', matrixChars.charAt(Math.floor(Math.random() * matrixChars.length))]; 
-        function displayMatrixTextEffect(element, text, delay = 40, glitchChance = 0.05) { 
+        function displayMatrixTextEffect(element, text, delay = 40, glitchChance = 0.08) { 
             element.innerHTML = ''; 
             let i = 0; 
             function typeChar() { 
@@ -512,10 +641,11 @@
                         charSpan.classList.add('glitch-char'); 
                         charSpan.textContent = glitchCharsList[Math.floor(Math.random() * glitchCharsList.length)]; 
                         element.appendChild(charSpan); 
+                        playSound('textGlitch'); 
                         setTimeout(() => { 
                             charSpan.textContent = originalChar; 
                             charSpan.classList.remove('glitch-char'); 
-                        }, 70 + Math.random() * 50); 
+                        }, 70 + Math.random() * 80); 
                     } else { 
                         charSpan.textContent = originalChar; 
                         element.appendChild(charSpan); 
@@ -534,7 +664,6 @@
             mainContentWrapper.classList.remove('content-fade-out');
             mainContentWrapper.classList.remove('custom-exit-animation');
             mainContentWrapper.style.animation = '';
-            mainContentWrapper.style.opacity = '1';
             mainContentWrapper.style.transform = 'scale(1)';
             mainContentWrapper.style.pointerEvents = 'auto';
             mainContentWrapper.style.display = 'flex'; 
@@ -548,8 +677,10 @@
             
             if (!isInitialLoad) {
                  elementsToReveal.forEach(el => { 
-                    el.classList.remove('revealed');
-                    el.style.opacity = '0'; 
+                    el.classList.remove('revealed'); // Ensure animation can replay
+                    el.style.animation = ''; // Clear any existing animation
+                    el.style.opacity = '0'; // Reset opacity for animation
+                    el.style.transform = 'translateY(20px)'; // Reset transform for animation
                 });
             }
             mainHeader.textContent = "The Matrix Has You...";
@@ -561,6 +692,7 @@
                 clearInterval(headerGlitchIntervalId);
                 headerGlitchIntervalId = null;
                 mainHeader.innerHTML = "The Matrix Has You..."; 
+                mainHeader.classList.remove('text-glitch-subtle');
             }
 
             stopVisualizer(); 
@@ -572,6 +704,7 @@
             
             if (!isInitialLoad) {
                 initialRevealDone = false; 
+                mainContentWrapper.classList.add('visible'); 
                 initiateUIReveal(); 
             }
         }
@@ -671,15 +804,17 @@
                             const transcriptText = await pollForTranscript(baseFileName);
                             
                             playSound('pageTransition');
-                            mainContentWrapper.classList.remove('content-fade-out');
+                            mainContentWrapper.classList.remove('content-fade-out'); 
                             mainContentWrapper.classList.add('custom-exit-animation'); 
                             operatorLog("Main interface zooming and fading out...");
                             if (headerGlitchIntervalId) clearInterval(headerGlitchIntervalId); 
+                            mainHeader.classList.remove('text-glitch-subtle');
+
 
                             setTimeout(() => { 
                                 mainContentWrapper.style.display = 'none'; 
                                 transcriptDiv.style.display = 'block';
-                                void transcriptDiv.offsetWidth;
+                                void transcriptDiv.offsetWidth; 
                                 transcriptDiv.classList.add('visible');
                                 operatorLog("Transcript display initiated.");
                                 setTimeout(() => { 
@@ -688,8 +823,8 @@
                                    displayMatrixTextEffect(transcriptTextParagraph, transcriptText); 
                                    displayFinalMessage("success"); 
                                    fileInput.value = ''; 
-                                }, 1000);
-                            }, 800);
+                                }, 1000); 
+                            }, 800); 
 
                         } else {
                             let errorMessage = responseText;
@@ -718,6 +853,7 @@
                 playSound('error'); 
                 operatorLog("Blue Pill taken. User chose blissful ignorance.");
                 if (headerGlitchIntervalId) clearInterval(headerGlitchIntervalId);
+                mainHeader.classList.remove('text-glitch-subtle');
                 clearInterval(matrixInterval); 
                 document.body.innerHTML = `
                     <div style="
@@ -731,7 +867,7 @@
                         z-index: 99999;
                         line-height: 1.7;
                         font-size: 20px;
-                        overflow: hidden;
+                        overflow: auto; 
                         text-align: left;
                         display: flex;
                         flex-direction: column;
@@ -741,7 +877,7 @@
                         <p style="margin-bottom: 1.5em;">The problem seems to be caused by the following file: <b>NEOREVN.SYS</b></p>
                         <p style="margin-bottom: 1.5em;">PAGE_FAULT_IN_NONPAGED_AREA</p>
                         <p style="margin-bottom: 1.5em;">
-                            If this is the first time you've seen this stop error screen,<br>
+                            If this is the first time you'veseen this stop error screen,<br>
                             restart your Brain. If this screen appears again, follow these steps:
                         </p>
                         <p style="margin-bottom: 1.5em;">
@@ -755,23 +891,37 @@
                             press on your temple, and then select Safe Mode - Consult with the Oracle if needed.
                         </p>
                         <p style="margin-bottom: 1em;">Technical Credits:</p>
-                        <pre style="font-size: 1em; margin-bottom: 1.5em;">
+                        <pre style="font-size: 1em; margin-bottom: 1.5em; white-space: pre-wrap; word-break: break-all;">
 *** STOP: 0x00000050 (0xFFFFF80000000000, 0x0000000000000001, 0xFFFFF80001004054, 0x0000000000000000)
 *** NEOREVN.SYS - Address FFFFF80001004054 base at FFFFF80000000000, DateStamp 3e6e4e01
                         </pre>
                     </div>
                 `;
-                document.documentElement.style.overflow = "hidden";
-                document.body.style.overflow = "hidden";
+                document.documentElement.style.overflow = "hidden"; 
+                document.body.style.overflow = "hidden"; 
                 document.body.style.margin = "0";
                 document.body.style.padding = "0";
             });
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            operatorLog("System Initialized. Awaiting user input...");
-            resetUIAndReveal(true); 
-            initiateUIReveal(); 
+            operatorLog("System Initialized. DOM ready. Awaiting full load...");
+            
+            if (typeof Tone !== 'undefined' && Tone.start) {
+                Tone.start().then(() => {
+                    operatorLog("Audio context started by Tone.js.");
+                    resetUIAndReveal(true); 
+                    initiateUIReveal();     
+                }).catch(err => {
+                    operatorLog("Error starting Tone.js audio context: " + err);
+                    resetUIAndReveal(true);
+                    initiateUIReveal(); 
+                });
+            } else {
+                operatorLog("Tone.js not fully loaded or available. Proceeding without audio confirmation.");
+                resetUIAndReveal(true);
+                initiateUIReveal();
+            }
         });
     </script>
 </body>
