@@ -4,7 +4,7 @@ name: Deploy React App to GitHub Pages
 on:
   # Runs on pushes targeting the default branch
   push:
-    branches: ["main"] # Or "master", depending on your repo's default branch
+    branches: ["master"] # Updated to use your 'master' branch
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -33,17 +33,20 @@ jobs:
         with:
           node-version: "18" # Use a recent LTS version of Node.js
           cache: "npm"
+          cache-dependency-path: "Asaf's Trivia/package-lock.json" # Point cache to the correct file
       - name: Install dependencies
-        run: npm ci # 'ci' is generally faster and more reliable for automated builds
+        run: npm ci
+        working-directory: "Asaf's Trivia" # **FIX:** Run this command inside your app's folder
       - name: Build
         run: npm run build
+        working-directory: "Asaf's Trivia" # **FIX:** Run this command inside your app's folder
       - name: Setup Pages
         uses: actions/configure-pages@v3
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v2
         with:
-          # This is the crucial part: upload from the 'build' folder
-          path: "./build"
+          # **FIX:** Upload from the 'build' folder inside your app's folder
+          path: "./Asaf's Trivia/build"
       
   # Deployment job
   deploy:
