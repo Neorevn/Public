@@ -37,7 +37,7 @@ jobs:
       # folder names with spaces or special characters.
       - name: Install and Build
         run: |
-          cd "Asaf's Trivia"
+          cd "AsafTrivia"
           npm install
           npm run build
         
