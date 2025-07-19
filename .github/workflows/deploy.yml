@@ -31,8 +31,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "18"
-          cache: "npm"
-          # **FIX:** The problematic cache-dependency-path has been removed.
+          # **FIX:** Removed the 'cache' and 'cache-dependency-path' lines to prevent pathing errors.
       - name: Install dependencies
         run: npm ci
         working-directory: "Asaf's Trivia"
