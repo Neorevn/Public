@@ -27,25 +27,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4 # **FIX:** Updated to v4
       - name: Set up Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4 # **FIX:** Updated to v4
         with:
-          node-version: "18" # Use a recent LTS version of Node.js
+          node-version: "18"
           cache: "npm"
-          cache-dependency-path: "Asaf's Trivia/package-lock.json" # Point cache to the correct file
+          cache-dependency-path: "Asaf's Trivia/package-lock.json"
       - name: Install dependencies
         run: npm ci
-        working-directory: "Asaf's Trivia" # **FIX:** Run this command inside your app's folder
+        working-directory: "Asaf's Trivia"
       - name: Build
         run: npm run build
-        working-directory: "Asaf's Trivia" # **FIX:** Run this command inside your app's folder
+        working-directory: "Asaf's Trivia"
       - name: Setup Pages
-        uses: actions/configure-pages@v3
+        uses: actions/configure-pages@v5 # **FIX:** Updated to v5
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v2
+        uses: actions/upload-pages-artifact@v3 # **FIX:** Updated to v3
         with:
-          # **FIX:** Upload from the 'build' folder inside your app's folder
           path: "./Asaf's Trivia/build"
       
   # Deployment job
@@ -58,4 +57,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v2
+        uses: actions/deploy-pages@v4 # **FIX:** Updated to v4
