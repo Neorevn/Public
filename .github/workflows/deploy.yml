@@ -32,16 +32,11 @@ jobs:
         with:
           node-version: "18"
       - name: Install dependencies
-        # **FIX:** Switched from 'npm ci' to 'npm install' to correctly handle the subfolder structure.
         run: npm install
         working-directory: "Asaf's Trivia"
       
-      # This step automatically adds the required "homepage" field to your package.json
-      - name: Add homepage to package.json
-        run: |
-          cd "Asaf's Trivia"
-          npm install -D json
-          npx json -I -f package.json -e "this.homepage=\"https://neorevn.github.io/Public/\""
+      # **FIX:** The complex step to auto-add the homepage has been removed.
+      # Please ensure you have added the "homepage" field to your package.json manually.
         
       - name: Build
         run: npm run build
