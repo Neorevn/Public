@@ -31,16 +31,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "18"
-      - name: Install dependencies
-        run: npm install
-        working-directory: "Asaf's Trivia"
       
-      # **FIX:** The complex step to auto-add the homepage has been removed.
-      # Please ensure you have added the "homepage" field to your package.json manually.
+      # **FIX:** Using a single 'run' step to explicitly change directory ('cd') 
+      # before installing and building. This is the most reliable way to handle
+      # folder names with spaces or special characters.
+      - name: Install and Build
+        run: |
+          cd "Asaf's Trivia"
+          npm install
+          npm run build
         
-      - name: Build
-        run: npm run build
-        working-directory: "Asaf's Trivia"
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
