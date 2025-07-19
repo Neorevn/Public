@@ -46,7 +46,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: "./Asaf's Trivia/build"
+          path: "Public/Asaf's Trivia/build"
       
   # Deployment job
   deploy:
