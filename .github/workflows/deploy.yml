@@ -32,12 +32,11 @@ jobs:
         with:
           node-version: "18"
       
-      # **FIX:** Using a single 'run' step to explicitly change directory ('cd') 
-      # before installing and building. This is the most reliable way to handle
-      # folder names with spaces or special characters.
+      # Using a single 'run' step to explicitly change directory ('cd') 
+      # before installing and building.
       - name: Install and Build
         run: |
-          cd "AsafTrivia"
+          cd AsafTrivia
           npm install
           npm run build
         
@@ -46,7 +45,8 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: "Public/AsafTrivia/build"
+          # **FIX:** Updated path to reflect the new directory name.
+          path: "./AsafTrivia/build"
       
   # Deployment job
   deploy:
