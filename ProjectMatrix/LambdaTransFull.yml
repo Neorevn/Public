@@ -10,7 +10,7 @@ Parameters:
   NotificationEmail:
     Type: String
     Description: "Email address to receive notifications for alarms."
-    Default: "YourEmail" # Please change this
+    Default: "YourEmail" # Please change this 
   CORSOrigin:
     Type: String
     Description: "CORS origin for API Gateway. Set to '*' for all origins or specify a domain."
