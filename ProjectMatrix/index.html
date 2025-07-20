@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
-<!--Created by Neorevn v3.5--> 
+<!-- Created by Nerorevn -->
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>The Matrix Has You...</title>
+    <link rel="icon" href="data:,">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <style>
         html, body {
@@ -14,7 +15,7 @@
             width: 100vw;
             min-height: 100vh;
             box-sizing: border-box;
-            overflow: hidden; 
+            overflow: hidden;
         }
         body {
             font-family: 'monospace', sans-serif;
@@ -39,10 +40,10 @@
             position: absolute;
             top: 0;
             left: 0;
-            width: 100vw; 
-            height: 100vh; 
+            width: 100vw;
+            height: 100vh;
             z-index: -1;
-            opacity: 0.65; 
+            opacity: 0.65;
         }
         #mainContentWrapper {
             position: relative;
@@ -64,12 +65,12 @@
         }
         #mainContentWrapper.content-fade-out {
             opacity: 0;
-            transform: scale(0.8); 
+            transform: scale(0.8);
             pointer-events: none;
         }
         #mainContentWrapper.custom-exit-animation {
             animation: mainContentExit 0.8s forwards;
-            pointer-events: none; 
+            pointer-events: none;
         }
         @keyframes mainContentExit {
             0% { opacity: 1; transform: scale(1);}
@@ -77,11 +78,9 @@
             100% { opacity: 0; transform: scale(1.15);}
         }
         .matrix-reveal-item {
-            opacity: 0;
-            margin-bottom: 18px; 
-            /* Removed transition to allow animation to fully control reveal */
-            /* transition: opacity 0.5s ease-out, transform 0.5s ease-out; */
-            transform: translateY(20px); 
+            opacity: 0; /* Children start transparent */
+            margin-bottom: 18px;
+            transform: translateY(20px);
         }
         .matrix-reveal-item:last-child {
             margin-bottom: 0;
@@ -93,20 +92,18 @@
             100% { opacity: 1; filter: none; transform: scale(1) skewX(0deg) translateY(0);}
         }
         .matrix-reveal-item.revealed {
-            /* opacity: 1; */ /* Controlled by animation */
-            /* transform: translateY(0); */ /* Controlled by animation */
-            animation: staticBurstReveal 0.5s cubic-bezier(0.1, 0.9, 0.2, 1) forwards; /* Increased duration slightly */
+            animation: staticBurstReveal 0.5s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
         }
-        h1 { 
+        h1 {
             color: #00ff00;
-            text-shadow: 0 0 8px #00ff00, 0 0 15px #00ff00; 
-            margin-top: 0; 
-            margin-bottom: 0; 
-            font-size: clamp(4em, 7vw, 6em); 
+            text-shadow: 0 0 8px #00ff00, 0 0 15px #00ff00;
+            margin-top: 0;
+            margin-bottom: 0;
+            font-size: clamp(4em, 7vw, 6em);
             text-align: center;
             position: relative;
             white-space: nowrap;
-            align-self: center; 
+            align-self: center;
         }
         @keyframes flickerGlow {
             0%   { text-shadow: 0 0 8px #00ff00, 0 0 15px #00ff00, 0 0 2px #fff; }
@@ -117,7 +114,7 @@
             100% { text-shadow: 0 0 8px #00ff00, 0 0 15px #00ff00, 0 0 2px #fff; }
         }
         h1.header-glow-glitching {
-            animation: flickerGlow 0.25s linear 2; 
+            animation: flickerGlow 0.25s linear 2;
         }
         .text-glitch-subtle {
             animation: subtleGlitch 3s infinite alternate;
@@ -129,211 +126,38 @@
             15% { text-shadow: 0 0 9px #00ff00, 0 0 16px #00ff00, 0 0 3px #88ff88; }
             20% { transform: skewX(0deg); opacity: 1; }
         }
-        #subHeaderMain {
-            color: #ffffff;
-            font-size: clamp(1.2em, 3.5vw, 1.0em);
-            margin-bottom: 0;
-            max-width: 95%;
-            text-align: center;
-            display: block;
-            white-space: normal;
-        }
-        #subHeaderSub {
-            color: #fff;
-            font-size: clamp(1.1em, 3vw, 0.95em);
-            margin-bottom: 0;
-            max-width: 100%;
-            text-align: center;
-            margin-left: 0;
-            display: block;
-            white-space: nowrap;
-            text-overflow: ellipsis;
-        }
-        form { 
-            background-color: transparent;
-            padding: 0;
-            margin-top: 15px; 
-            margin-bottom: 0; 
-            border: none;
-            width: 100%; 
-            max-width: 500px; 
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        form div {
-            margin-bottom: 10px; 
-            width: 100%;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px; 
-            font-weight: bold;
-            color: #00ff00;
-            font-size: 1em; 
-        }
-        input[type="file"] {
-            padding: 10px; 
-            border: 1px solid #006400; 
-            border-radius: 3px; 
-            width: 100%;
-            box-sizing: border-box;
-            background-color: #000; 
-            color: #00ff00; 
-            font-size: 1em; 
-            cursor: pointer;
-            position: relative; 
-            transition: box-shadow 0.2s ease-in-out;
-        }
-        input[type="file"]:hover, input[type="file"]:focus {
-            box-shadow: 0 0 8px #00ff00, 0 0 3px #00ff00 inset;
-        }
-        input[type="file"]::-webkit-file-upload-button {
-            background-color: #000; 
-            color: #00ff00; 
-            border: 1px solid #00ff00; 
-            padding: 8px 12px; 
-            border-radius: 3px; 
-            font-size: 0.9em; 
-            cursor: pointer;
-            transition: background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
-            box-shadow: 0 0 3px #00ff00; 
-            margin-right: 8px; 
-            -webkit-appearance: none; 
-            appearance: none;
-        }
-        input[type="file"]::-webkit-file-upload-button:hover {
-            background-color: #00ff00; 
-            color: #000; 
-            box-shadow: 0 0 10px #00ff00; 
-        }
-        input[type="file"]::file-selector-button { 
-            background-color: #000;
-            color: #00ff00;
-            border: 1px solid #00ff00;
-            padding: 8px 12px; 
-            border-radius: 3px; 
-            font-size: 0.9em; 
-            cursor: pointer;
-            transition: background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
-            box-shadow: 0 0 3px #00ff00; 
-            margin-right: 8px; 
-        }
-        input[type="file"]::file-selector-button:hover { 
-            background-color: #00ff00;
-            color: #000;
-            box-shadow: 0 0 10px #00ff00; 
-        }
-        .button-container {
-            display: flex;
-            justify-content: center;
-            margin-top: 8px; 
-            width: 100%;
-            flex-wrap: wrap;
-        }
-        button {
-            padding: 12px 25px; 
-            border: none;
-            border-radius: 4px; 
-            cursor: pointer;
-            font-size: 1.1em; 
-            transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.1s ease;
-            box-shadow: 0 0 5px #00ff00;
-            margin: 5px;
-            color: #fff; 
-        }
-        button:hover {
-            transform: translateY(-2px);
-        }
-        button:active {
-            transform: translateY(0px);
-        }
-        @keyframes pulseRed {
-            0% { box-shadow: 0 0 5px #ff0000, 0 0 10px #cc0000; }
-            50% { box-shadow: 0 0 15px #ff3333, 0 0 25px #ff0000; }
-            100% { box-shadow: 0 0 5px #ff0000, 0 0 10px #cc0000; }
-        }
-        #uploadButton { 
-            background-color: #cc0000; 
-            animation: pulseRed 2s infinite ease-in-out;
-        }
-        #uploadButton:hover { 
-            background-color: #ff0000; 
-            animation-play-state: paused; 
-            box-shadow: 0 0 20px #ff0000, 0 0 30px #ff3333;
-        }
+        #subHeaderMain { color: #ffffff; font-size: clamp(1.2em, 3.5vw, 1.0em); margin-bottom: 0; max-width: 95%; text-align: center; display: block; white-space: normal; }
+        #subHeaderSub { color: #fff; font-size: clamp(1.1em, 3vw, 0.95em); margin-bottom: 0; max-width: 100%; text-align: center; margin-left: 0; display: block; white-space: nowrap; text-overflow: ellipsis; }
+        form { background-color: transparent; padding: 0; margin-top: 15px; margin-bottom: 0; border: none; width: 100%; max-width: 500px; display: flex; flex-direction: column; align-items: center; }
+        form div { margin-bottom: 10px; width: 100%; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #00ff00; font-size: 1em; }
+        input[type="file"] { padding: 10px; border: 1px solid #006400; border-radius: 3px; width: 100%; box-sizing: border-box; background-color: #000; color: #00ff00; font-size: 1em; cursor: pointer; position: relative; transition: box-shadow 0.2s ease-in-out; }
+        input[type="file"]:hover, input[type="file"]:focus { box-shadow: 0 0 8px #00ff00, 0 0 3px #00ff00 inset; }
+        input[type="file"]::-webkit-file-upload-button { background-color: #000; color: #00ff00; border: 1px solid #00ff00; padding: 8px 12px; border-radius: 3px; font-size: 0.9em; cursor: pointer; transition: background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease; box-shadow: 0 0 3px #00ff00; margin-right: 8px; -webkit-appearance: none; appearance: none; }
+        input[type="file"]::-webkit-file-upload-button:hover { background-color: #00ff00; color: #000; box-shadow: 0 0 10px #00ff00; }
+        input[type="file"]::file-selector-button { background-color: #000; color: #00ff00; border: 1px solid #00ff00; padding: 8px 12px; border-radius: 3px; font-size: 0.9em; cursor: pointer; transition: background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease; box-shadow: 0 0 3px #00ff00; margin-right: 8px; }
+        input[type="file"]::file-selector-button:hover { background-color: #00ff00; color: #000; box-shadow: 0 0 10px #00ff00; }
+        .button-container { display: flex; justify-content: center; margin-top: 8px; width: 100%; flex-wrap: wrap; }
+        button { padding: 12px 25px; border: none; border-radius: 4px; cursor: pointer; font-size: 1.1em; transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.1s ease; box-shadow: 0 0 5px #00ff00; margin: 5px; color: #fff; }
+        button:hover { transform: translateY(-2px); }
+        button:active { transform: translateY(0px); }
+        @keyframes pulseRed { 0% { box-shadow: 0 0 5px #ff0000, 0 0 10px #cc0000; } 50% { box-shadow: 0 0 15px #ff3333, 0 0 25px #ff0000; } 100% { box-shadow: 0 0 5px #ff0000, 0 0 10px #cc0000; } }
+        #uploadButton { background-color: #cc0000; animation: pulseRed 2s infinite ease-in-out; }
+        #uploadButton:hover { background-color: #ff0000; animation-play-state: paused; box-shadow: 0 0 20px #ff0000, 0 0 30px #ff3333; }
         #bluePillButton { background-color: #00008b; }
         #bluePillButton:hover { background-color: #0000ec; box-shadow: 0 0 15px #0000fd; }
-        #message { 
-            margin-top: 0; 
-            font-size: 1.1em; 
-            color: #00ff00;
-            min-height: 1.5em; 
-            text-shadow: 0 0 5px #00ff00;
-            max-width: 80%; 
-            white-space: pre-wrap;
-            transition: color 0.2s, text-shadow 0.2s; 
-        }
-        #audioVisualizerCanvas { 
-            width: 80%;
-            max-width: 600px;
-            height: 100px;
-            background-color: rgba(0, 20, 0, 0.5); 
-            border: 1px solid #00ff00;
-            margin-top: 20px;
-            display: none; 
-            box-shadow: 0 0 10px #00ff00;
-        }
-        #transcript {
-            margin: auto;
-            left: unset;
-            top: unset;
-            transform: none;
-            position: relative;
-            display: none;
-            width: 80%;
-            max-width: 800px;
-            max-height: 70vh;
-            overflow-y: auto;
-            box-shadow: 0 0 20px #00ff00, 0 0 30px #00dd00;
-            background-color: rgba(0, 0, 0, 0.9);
-            border: 1px solid #006400;
-            border-radius: 8px;
-            text-align: left;
-            font-family: 'monospace', sans-serif;
-            font-size: 1em;
-            color: #00ff00;
-            opacity: 0;
-            transition: opacity 1s ease-in-out, transform 1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        #transcript.visible {
-            display: block;
-            opacity: 1;
-            transform: none;
-            margin: auto;
-        }
-        #transcript h2 {
-            text-align: center;
-        }
-        #finalMessage {
-            position: fixed;
-            left: 50%;
-            bottom: 32px;
-            transform: translateX(-50%);
-            width: max-content;
-            text-align: center;
-            color: #00ff00;
-            font-size: 1.15em;
-            z-index: 10;
-            pointer-events: none;
-            text-shadow: 0 0 8px #00ff00, 0 0 15px #00ff00;
-        }
+        #message { margin-top: 0; font-size: 1.1em; color: #00ff00; min-height: 1.5em; text-shadow: 0 0 5px #00ff00; max-width: 80%; white-space: pre-wrap; transition: color 0.2s, text-shadow 0.2s; }
+        #audioVisualizerCanvas { width: 80%; max-width: 600px; height: 100px; background-color: rgba(0, 20, 0, 0.5); border: 1px solid #00ff00; margin-top: 20px; display: none; box-shadow: 0 0 10px #00ff00; }
+        #transcript { margin: auto; left: unset; top: unset; transform: none; position: relative; display: none; width: 80%; max-width: 800px; max-height: 70vh; overflow-y: auto; box-shadow: 0 0 20px #00ff00, 0 0 30px #00dd00; background-color: rgba(0, 0, 0, 0.9); border: 1px solid #006400; border-radius: 8px; text-align: left; font-family: 'monospace', sans-serif; font-size: 1em; color: #00ff00; opacity: 0; transition: opacity 1s ease-in-out, transform 1s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        #transcript.visible { display: block; opacity: 1; transform: none; margin: auto; }
+        #transcript h2 { text-align: center; }
+        #finalMessage { position: fixed; left: 50%; bottom: 32px; transform: translateX(-50%); width: max-content; text-align: center; color: #00ff00; font-size: 1.15em; z-index: 10; pointer-events: none; text-shadow: 0 0 8px #00ff00, 0 0 15px #00ff00; }
     </style>
 </head>
 <body>
-    <canvas id="matrixCanvasBackground"></canvas> 
-    
-    <div id="mainContentWrapper"> 
+    <canvas id="matrixCanvasBackground"></canvas>
+
+    <div id="mainContentWrapper">
         <h1 id="mainHeader" class="matrix-reveal-item">The Matrix Has You...</h1>
         <h2 id="subHeaderMain" class="matrix-reveal-item">Select an MP3 Recording to upload</h2>
         <h2 id="subHeaderSub" class="matrix-reveal-item">Choose the Red pill or Blue pill and I'll show you how deep the rabbit hole goes.</h2>
@@ -344,583 +168,580 @@
             </div>
             <div class="button-container">
                 <button id="uploadButton" type="submit">Take the Red Pill</button>
-                <button id="bluePillButton" type="button">Take the Blue Pill</button> 
+                <button id="bluePillButton" type="button">Take the Blue Pill</button>
             </div>
         </form>
         <div id="message" class="matrix-reveal-item">Follow the white rabbit, Neo.</div>
-        <canvas id="audioVisualizerCanvas"></canvas> 
+        <canvas id="audioVisualizerCanvas"></canvas>
     </div>
 
     <div id="transcript">
         <h2>Signal Decryption:</h2>
         <p id="transcriptText"></p>
     </div>
-    
-    <div id="finalMessage"></div> 
+
+    <div id="finalMessage"></div>
 
     <script>
         // DOM Elements
         const mainContentWrapper = document.getElementById("mainContentWrapper");
-        const mainHeader = document.getElementById("mainHeader"); 
+        if (!mainContentWrapper) {
+            console.error("CRITICAL STARTUP ERROR: mainContentWrapper not found immediately after declaration!");
+        } else {
+            console.log("STARTUP INFO: mainContentWrapper found.");
+        }
+
+        const mainHeader = document.getElementById("mainHeader");
         const subHeaderMain = document.getElementById("subHeaderMain");
         const subHeaderSub = document.getElementById("subHeaderSub");
         const uploadForm = document.getElementById("uploadForm");
         const fileInput = document.getElementById("fileInput");
         const messageDiv = document.getElementById("message");
         const audioVisualizerCanvas = document.getElementById('audioVisualizerCanvas');
-        const visualizerCtx = audioVisualizerCanvas.getContext('2d'); 
+        const visualizerCtx = audioVisualizerCanvas ? audioVisualizerCanvas.getContext('2d') : null;
         const transcriptDiv = document.getElementById("transcript");
         const transcriptTextParagraph = document.getElementById("transcriptText");
         const finalMessageDiv = document.getElementById("finalMessage");
-        const bluePillButton = document.getElementById("bluePillButton"); 
-        
-        const API_BASE_URL = "YOUR_API_ENDPOINT_URL"; // IMPORTANT: Replace with your actual API endpoint
+        const bluePillButton = document.getElementById("bluePillButton");
+        const uploadButton = document.getElementById("uploadButton");
 
-        function operatorLog(message) { 
+        const matrixCanvas = document.getElementById('matrixCanvasBackground');
+        if (!matrixCanvas) {
+            console.error("CRITICAL STARTUP ERROR: matrixCanvas not found immediately after declaration!");
+        } else {
+            console.log("STARTUP INFO: matrixCanvas found.");
+        }
+        const matrixCtx = matrixCanvas ? matrixCanvas.getContext('2d') : null;
+
+
+        const API_BASE_URL = "YOUR_API_BASE_URL_HERE"; // Replace with your actual API base URL
+
+        let audioInitialized = false;
+
+        function operatorLog(message) {
             console.log(`%cOPERATOR LOG: %c${message}`, "color: #00ff00; font-weight: bold;", "color: #33cc33;");
         }
 
-        const matrixCanvas = document.getElementById('matrixCanvasBackground');
-        const matrixCtx = matrixCanvas.getContext('2d');
-        
-        let mouseX = -1000; 
-        let mouseY = -1000;
-
-        function sizeMatrixCanvas() {
-            matrixCanvas.width = window.innerWidth; 
-            matrixCanvas.height = window.innerHeight;
-            matrixColumns = Math.floor(matrixCanvas.width / matrixFontSize); 
-            matrixDrops = [];
-            for (let x = 0; x < matrixColumns; x++) {
-                matrixDrops[x] = 1 - Math.floor(Math.random() * (matrixCanvas.height / (matrixFontSize * 0.8) )); 
-            }
-        }
-
+        // --- Matrix Background Canvas Logic ---
+        let mouseX = -1000; let mouseY = -1000;
         const katakana = 'アァカサタナハマヤャラワガザダバパイィキシチニヒミリヰギジヂビピウゥクスツヌフムユュルグズヅブプエェケセテネヘメレヱゲゼデベペオォコソトノホモヨョロヲゴゾドボポヴッン';
-        const latin = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'; 
+        const latin = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
         const matrixChars = katakana + latin + '!@#$%^&*()_+-=[]{}|;:",./<>?';
         const matrixFontSize = 16;
-        let matrixColumns; 
-        let matrixDrops = []; 
-        let matrixRainSpeed = 33; 
-        let matrixRainDensityFactor = 0.05; 
-        let matrixInterval;
-        
-        function drawMatrix() { 
-            matrixCtx.fillStyle = `rgba(0, 0, 0, ${matrixRainDensityFactor})`; 
-            matrixCtx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height); 
-            
-            for (let i = 0; i < matrixDrops.length; i++) { 
-                const text = matrixChars.charAt(Math.floor(Math.random() * matrixChars.length)); 
-                const xPos = i * matrixFontSize;
-                const yPos = matrixDrops[i] * matrixFontSize;
+        let matrixColumns; let matrixDrops = []; let matrixRainSpeed = 33; let matrixRainDensityFactor = 0.05; let matrixInterval;
 
-                const distanceToMouse = Math.sqrt(Math.pow(xPos - mouseX, 2) + Math.pow(yPos - mouseY, 2));
-                
-                let currentFontSize = matrixFontSize;
-                let currentFillStyle = '#00ff00'; // Standard green
+        function sizeMatrixCanvas() {
+            if (!matrixCanvas) return;
+            matrixCanvas.width = window.innerWidth;
+            matrixCanvas.height = window.innerHeight;
+            matrixColumns = Math.floor(matrixCanvas.width / matrixFontSize);
+            matrixDrops = [];
+            for (let x = 0; x < matrixColumns; x++) { matrixDrops[x] = 1 - Math.floor(Math.random() * (matrixCanvas.height / (matrixFontSize * 0.8))); }
+        }
+        function drawMatrix() {
+            if (!matrixCtx) return;
+            matrixCtx.fillStyle = `rgba(0, 0, 0, ${matrixRainDensityFactor})`;
+            matrixCtx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
+            for (let i = 0; i < matrixDrops.length; i++) { const text = matrixChars.charAt(Math.floor(Math.random() * matrixChars.length)); const xPos = i * matrixFontSize; const yPos = matrixDrops[i] * matrixFontSize; const distanceToMouse = Math.sqrt(Math.pow(xPos - mouseX, 2) + Math.pow(yPos - mouseY, 2)); let currentFontSize = matrixFontSize; let currentFillStyle = '#00ff00'; if (distanceToMouse < 80) { currentFillStyle = '#ffffff'; currentFontSize = matrixFontSize * 1.2; if (Math.random() > 0.1) matrixDrops[i]++; if (yPos > matrixCanvas.height && Math.random() > 0.90) matrixDrops[i] = 0; } else if (distanceToMouse < 150) { currentFillStyle = '#50ff50'; } matrixCtx.font = currentFontSize + 'px monospace'; matrixCtx.fillStyle = currentFillStyle; matrixCtx.fillText(text, xPos, yPos); if (yPos > matrixCanvas.height && Math.random() > 0.975) matrixDrops[i] = 0; matrixDrops[i]++; }
+        }
+        function updateMatrixAnimation() {
+            if (!matrixCtx) return;
+            clearInterval(matrixInterval);
+            matrixInterval = setInterval(drawMatrix, matrixRainSpeed);
+        }
 
-                if (distanceToMouse < 80) { // Increased interaction radius to 80
-                    currentFillStyle = '#ffffff'; // Change to white for high contrast
-                    currentFontSize = matrixFontSize * 1.2; // Slightly larger font
-                     // Make drops near mouse fall slightly faster and reset more readily
-                    if (Math.random() > 0.1) matrixDrops[i]++; // 90% chance of extra increment
-                    if (yPos > matrixCanvas.height && Math.random() > 0.90) { // Higher chance of reset
-                         matrixDrops[i] = 0;
-                    }
-                } else if (distanceToMouse < 150) { // A secondary, less intense interaction ring
-                     currentFillStyle = '#50ff50'; // A brighter green
-                }
-                
-                matrixCtx.font = currentFontSize + 'px monospace'; 
-                matrixCtx.fillStyle = currentFillStyle;
-                matrixCtx.fillText(text, xPos, yPos);
-                
-                if (yPos > matrixCanvas.height && Math.random() > 0.975) { 
-                    matrixDrops[i] = 0; 
-                }
-                matrixDrops[i]++; 
-            } 
+        if(matrixCanvas) {
+            matrixCanvas.addEventListener('mousemove', (event) => { mouseX = event.clientX; mouseY = event.clientY; });
+            matrixCanvas.addEventListener('mouseleave', () => { mouseX = -1000; mouseY = -1000; });
+            sizeMatrixCanvas();
+            updateMatrixAnimation();
+            window.addEventListener('resize', sizeMatrixCanvas);
+        } else {
+            operatorLog("ERROR: matrixCanvas was not found during setup. Background will not render.");
         }
-        function updateMatrixAnimation() { 
-            clearInterval(matrixInterval); 
-            matrixInterval = setInterval(drawMatrix, matrixRainSpeed); 
-        }
-        
-        matrixCanvas.addEventListener('mousemove', (event) => {
-            mouseX = event.clientX;
-            mouseY = event.clientY;
-        });
-        matrixCanvas.addEventListener('mouseleave', () => {
-            mouseX = -1000; 
-            mouseY = -1000;
-        });
-        
-        sizeMatrixCanvas(); 
-        updateMatrixAnimation(); 
-        window.addEventListener('resize', () => {
-            sizeMatrixCanvas(); 
-        });
-        
+
+
+        // --- Audio Visualizer Logic ---
         let audioContext; let analyser; let source; let dataArray; let visualizerAnimationId;
-        function drawVisualizer() { 
-            if (!analyser) return; 
-            visualizerAnimationId = requestAnimationFrame(drawVisualizer); 
-            analyser.getByteFrequencyData(dataArray); 
-            visualizerCtx.fillStyle = 'rgba(0, 10, 0, 0.7)'; 
-            visualizerCtx.fillRect(0, 0, audioVisualizerCanvas.width, audioVisualizerCanvas.height); 
-            const barWidth = (audioVisualizerCanvas.width / dataArray.length) * 2; 
-            let barHeight; 
-            let x = 0; 
-            for (let i = 0; i < dataArray.length; i++) { 
-                barHeight = dataArray[i] / 2.5; 
-                visualizerCtx.fillStyle = 'rgba(0, 255, 0, ' + (barHeight / 150) + ')'; 
-                visualizerCtx.fillRect(x, audioVisualizerCanvas.height - barHeight, barWidth, barHeight); 
-                x += barWidth + 2; 
-            } 
+        function drawVisualizer() { /* ... */ }
+        function stopVisualizer() { /* ... */ }
+
+        // --- Tone.js Sound Synthesis ---
+        let masterReverb, masterDelay, fmSynth, clickSynth, successSynth, errorSynth, transitionSynth, elementRevealSound, formRevealSound, glitchSound, headerGlitchSFX;
+        if (typeof Tone !== 'undefined') {
+            masterReverb = new Tone.Reverb(0.5).toDestination();
+            masterDelay = new Tone.FeedbackDelay("16n", 0.3).connect(masterReverb);
+            fmSynth = new Tone.FMSynth({ harmonicity: 1.5, modulationIndex: 7, oscillator: { type: "sawtooth" }, envelope: { attack: 0.005, decay: 0.15, sustain: 0.02, release: 0.3 }, modulation: { type: "sine" }, modulationEnvelope: { attack: 0.01, decay: 0.2, sustain: 0.02, release: 0.4 } }).connect(masterDelay);
+            clickSynth = new Tone.MembraneSynth({ pitchDecay: 0.008, octaves: 5, oscillator: { type: "square" }, envelope: { attack: 0.001, decay: 0.05, sustain: 0, release: 0.08 }, volume: -12 }).connect(masterReverb);
+            successSynth = new Tone.PolySynth(Tone.Synth, { volume: -10, oscillator: { type: "fatsine", count: 3, spread: 40 }, envelope: { attack: 0.01, decay: 0.5, sustain: 0.2, release: 1.0 }, filter: { type: "lowpass", frequency: 1500, Q: 0.8 }, filterEnvelope: { attack: 0.05, decay: 0.3, sustain: 0.1, release: 0.6, baseFrequency: 400, octaves: 2.5 } }).connect(masterReverb);
+            errorSynth = new Tone.MetalSynth({ frequency: 30, envelope: { attack: 0.002, decay: 0.5, release: 0.3 }, harmonicity: 5.1, modulationIndex: 25, resonance: 1000, octaves: 1 }).connect(masterReverb);
+            transitionSynth = new Tone.MonoSynth({ volume: -10, oscillator: { type: "fatsquare", count: 4, spread: 20 }, envelope: { attack: 1.2, decay: 0.4, sustain: 0.7, release: 2.5 }, filterEnvelope: { attack: 1.2, decay: 0.2, sustain: 0.5, release: 2.5, baseFrequency: 60, octaves: 6 } }).connect(masterReverb);
+            elementRevealSound = new Tone.FMSynth({ harmonicity: 0.6, modulationIndex: 10, oscillator: { type: "sine" }, envelope: { attack: 0.005, decay: 0.12, sustain: 0.005, release: 0.2 }, modulation: { type: "sawtooth" }, modulationEnvelope: { attack: 0.01, decay: 0.08, sustain: 0, release: 0.15 }, volume: +10 }).connect(masterDelay);
+            formRevealSound = new Tone.Synth({ oscillator: {type: "pulse", width: 0.7}, envelope: {attack: 0.05, decay:0.3, sustain:0.1, release:0.4}, volume: -10 }).connect(masterReverb);
+            glitchSound = new Tone.NoiseSynth({ noise: { type: 'pink' }, envelope: { attack: 0.001, decay: 0.02, sustain: 0 }, volume: -12 }).connect(masterReverb);
+            headerGlitchSFX = new Tone.FMSynth({ harmonicity: 3.01, modulationIndex: 14, detune: 0, oscillator: { type: "triangle" }, envelope: { attack: 0.001, decay: 0.01, sustain: 0, release: 0.04 }, modulation: { type: "square" }, modulationEnvelope: { attack: 0.002, decay: 0.005, sustain: 0, release: 0.01 }, volume: -15 }).connect(masterReverb);
+        } else {
+            operatorLog("ERROR: Tone.js library not loaded. Sounds will not work.");
         }
-        function stopVisualizer() { 
-            if (visualizerAnimationId) cancelAnimationFrame(visualizerAnimationId); 
-            if (source && source.disconnect) source.disconnect(); 
-            audioVisualizerCanvas.style.display = 'none';
-        }
-
-        const masterReverb = new Tone.Reverb(0.5).toDestination(); 
-        const masterDelay = new Tone.FeedbackDelay("16n", 0.3).connect(masterReverb);
-        const fmSynth = new Tone.FMSynth({ harmonicity: 1.5, modulationIndex: 7, oscillator: { type: "sawtooth" }, envelope: { attack: 0.005, decay: 0.15, sustain: 0.02, release: 0.3 }, modulation: { type: "sine" }, modulationEnvelope: { attack: 0.01, decay: 0.2, sustain: 0.02, release: 0.4 } }).connect(masterDelay);
-        const clickSynth = new Tone.MembraneSynth({ pitchDecay: 0.008, octaves: 5, oscillator: { type: "square" }, envelope: { attack: 0.001, decay: 0.05, sustain: 0, release: 0.08 }, volume: -12 }).connect(masterReverb);
-        const successSynth = new Tone.PolySynth(Tone.Synth, { volume: -10, oscillator: { type: "fatsine", count: 3, spread: 40 }, envelope: { attack: 0.01, decay: 0.5, sustain: 0.2, release: 1.0 }, filter: { type: "lowpass", frequency: 1500, Q: 0.8 }, filterEnvelope: { attack: 0.05, decay: 0.3, sustain: 0.1, release: 0.6, baseFrequency: 400, octaves: 2.5 } }).connect(masterReverb);
-        const errorSynth = new Tone.MetalSynth({ frequency: 30, envelope: { attack: 0.002, decay: 0.5, release: 0.3 }, harmonicity: 5.1, modulationIndex: 25, resonance: 1000, octaves: 1 }).connect(masterReverb); 
-        const transitionSynth = new Tone.MonoSynth({ volume: -10, oscillator: { type: "fatsquare", count: 4, spread: 20 }, envelope: { attack: 1.2, decay: 0.4, sustain: 0.7, release: 2.5 }, filterEnvelope: { attack: 1.2, decay: 0.2, sustain: 0.5, release: 2.5, baseFrequency: 60, octaves: 6 } }).connect(masterReverb);
-        const elementRevealSound = new Tone.FMSynth({ harmonicity: 0.6, modulationIndex: 10, oscillator: { type: "sine" }, envelope: { attack: 0.005, decay: 0.12, sustain: 0.005, release: 0.2 }, modulation: { type: "sawtooth" }, modulationEnvelope: { attack: 0.01, decay: 0.08, sustain: 0, release: 0.15 }, volume: +10 }).connect(masterDelay);
-        const formRevealSound = new Tone.Synth({ oscillator: {type: "pulse", width: 0.7}, envelope: {attack: 0.05, decay:0.3, sustain:0.1, release:0.4}, volume: -10 }).connect(masterReverb); 
-        const glitchSound = new Tone.NoiseSynth({ noise: { type: 'pink' }, envelope: { attack: 0.001, decay: 0.02, sustain: 0 }, volume: -12 }).connect(masterReverb); // Increased volume
-        const headerGlitchSFX = new Tone.FMSynth({ harmonicity: 3.01, modulationIndex: 14, detune: 0, oscillator: { type: "triangle" }, envelope: { attack: 0.001, decay: 0.01, sustain: 0, release: 0.04 }, modulation: { type: "square" }, modulationEnvelope: { attack: 0.002, decay: 0.005, sustain: 0, release: 0.01 }, volume: -15 }).connect(masterReverb); // Increased volume
 
 
-        function playSound(type) { 
-            if (typeof Tone !== 'undefined' && Tone.start) {
-                Tone.start(); 
-            } else {
-                operatorLog("Tone.js not available or not started.");
-                return;
+        async function initializeAudioOnFirstInteraction() {
+            if (!audioInitialized && typeof Tone !== 'undefined' && Tone.start) {
+                try {
+                    await Tone.start();
+                    operatorLog("Audio context started by Tone.js after user gesture.");
+                    audioInitialized = true;
+                } catch (err) {
+                    operatorLog("Error starting Tone.js audio context: " + (err.message || err));
+                }
             }
-            const now = Tone.now(); 
-            switch(type) { 
-                case 'select': clickSynth.triggerAttackRelease("B5", "64n", now); break; 
-                case 'uploadClick': fmSynth.triggerAttackRelease("F2", "8n", now); break; 
-                case 'uploadSuccess': successSynth.triggerAttackRelease(["G5", "C6", "E6"], "8n", now); break; 
-                case 'transcriptReady': successSynth.triggerAttackRelease(["C4", "G4", "C5", "E5"], "1n", now + 0.1); break; 
-                case 'error': errorSynth.triggerAttackRelease("16n", now); break; 
-                case 'processingTick': clickSynth.triggerAttackRelease("D6", "128n", now + Math.random() * 0.01); break; 
-                case 'pageTransition': transitionSynth.triggerAttackRelease("G1", "2s", now); break; 
-                case 'elementReveal': 
-                    const notes = ["C3", "D3", "E2", "F#2", "G2"];
-                    elementRevealSound.triggerAttackRelease(notes[Math.floor(Math.random() * notes.length)], "16n", now); 
-                    break;
-                case 'formReveal': 
-                    formRevealSound.triggerAttackRelease("E3", "8n", now);
-                    break;
-                case 'textGlitch': 
-                    glitchSound.triggerAttackRelease("32n", now + Math.random() * 0.05);
-                    break;
-                case 'headerGlitch': 
-                    headerGlitchSFX.triggerAttackRelease("C4", "32n", now + Math.random() * 0.02); 
-                    break;
-            } 
         }
-        fileInput.addEventListener('change', () => { playSound('select'); });
 
+        function playSound(type) {
+            if (!audioInitialized) {
+                operatorLog(`Audio context not yet initialized for sound '${type}'. Sound will be silent.`);
+            }
+            if (typeof Tone !== 'undefined' && Tone.now && audioInitialized && clickSynth) { // Check specific synth for readiness
+                const now = Tone.now();
+                switch(type) {
+                    case 'select': clickSynth.triggerAttackRelease("B5", "64n", now); break;
+                    case 'uploadClick': if(fmSynth) fmSynth.triggerAttackRelease("F2", "8n", now); break;
+                    case 'uploadSuccess': if(successSynth) successSynth.triggerAttackRelease(["G5", "C6", "E6"], "8n", now); break;
+                    case 'transcriptReady': if(successSynth) successSynth.triggerAttackRelease(["C4", "G4", "C5", "E5"], "1n", now + 0.1); break;
+                    case 'error': if(errorSynth) errorSynth.triggerAttackRelease("16n", now); break;
+                    case 'processingTick': clickSynth.triggerAttackRelease("D6", "128n", now + Math.random() * 0.01); break;
+                    case 'pageTransition': if(transitionSynth) transitionSynth.triggerAttackRelease("G1", "2s", now); break;
+                    case 'elementReveal':
+                        const notes = ["C3", "D3", "E2", "F#2", "G2"];
+                        if (elementRevealSound) elementRevealSound.triggerAttackRelease(notes[Math.floor(Math.random() * notes.length)], "16n", now);
+                        break;
+                    case 'formReveal':
+                        if (formRevealSound) formRevealSound.triggerAttackRelease("E3", "8n", now);
+                        break;
+                    case 'textGlitch':
+                        if (glitchSound) glitchSound.triggerAttackRelease("32n", now + Math.random() * 0.05);
+                        break;
+                    case 'headerGlitch':
+                        if (headerGlitchSFX) headerGlitchSFX.triggerAttackRelease("C4", "32n", now + Math.random() * 0.02);
+                        break;
+                    default: break;
+                }
+            } else if (!audioInitialized) {
+                 // Already logged above
+            } else {
+                operatorLog(`Tone.js not fully available or sound type '${type}' synth not ready.`);
+            }
+        }
+
+        if(fileInput) fileInput.addEventListener('change', async () => {
+            await initializeAudioOnFirstInteraction();
+            playSound('select');
+        });
+
+        // --- UI Messages and Effects ---
         const matrixMessages = { preparing: "Verifying neural link...", uploading: "Injecting data stream into the Construct...", uploadConfirmed: "Mainline connection active. Stand by, Neo.", polling: ["Pinging the Oracle...", "Escaping Agent detection patterns...", "There is no spoon... only code.", "Ciphering reality streams...", "Awaiting decryption key...", "Searching for residual self-image...", "The Architect is thinking...", "Morpheus is on the line..."], success: "Message from Zion: Transcript decrypted.", errorGeneric: "System Failure! A critical error in the Matrix.", errorTranscript: "Data corruption! Unable to retrieve transcript.", timeout: "Signal lost. The construct is unstable. Try again." };
         let currentPollingMessageIndex = 0;
+        const glitchCharsList = ['█', '▓', '▒', '░', '_', '#', '$', '%', '&', '*', '>', '<', '/', '\\', '!', '?', matrixChars.charAt(Math.floor(Math.random() * matrixChars.length))];
+        function scrambleTextEffect(element, originalText, duration = 500, onComplete) { if(element) element.textContent = originalText; if(onComplete) onComplete(); }
+        function displayPollingMessage(details = "") { if(messageDiv) scrambleTextEffect(messageDiv, `${matrixMessages.polling[currentPollingMessageIndex]} ${details}`); currentPollingMessageIndex = (currentPollingMessageIndex + 1) % matrixMessages.polling.length; }
+        function displayStatusMessage(type, details = "") { if(messageDiv) scrambleTextEffect(messageDiv, `${matrixMessages[type] || type} ${details}`); }
+        function displayFinalMessage(type, details = "") { if(finalMessageDiv) { finalMessageDiv.textContent = `${matrixMessages[type] || type} ${details}`; finalMessageDiv.classList.add('visible');} }
 
-        const glitchCharsList = ['█', '▓', '▒', '░', '_', '#', '$', '%', '&', '*', '>', '<', '/', '\\', '!', '?', matrixChars.charAt(Math.floor(Math.random() * matrixChars.length))]; 
-
-        function scrambleTextEffect(element, originalText, duration = 500, onComplete) {
-            let intervalId;
-            const startTime = Date.now();
-            playSound('textGlitch'); 
-
-            function updateText() {
-                const elapsedTime = Date.now() - startTime;
-                if (elapsedTime >= duration) {
-                    clearInterval(intervalId);
-                    element.textContent = originalText;
-                    element.style.color = '#00ff00'; 
-                    element.style.textShadow = '0 0 5px #00ff00'; 
-                    if (onComplete) onComplete();
-                    return;
-                }
-
-                let scrambled = '';
-                for (let i = 0; i < originalText.length; i++) {
-                    if (Math.random() > (elapsedTime / duration) * 0.7 + 0.3 || originalText[i] === ' ') { 
-                        scrambled += originalText[i];
-                    } else {
-                        scrambled += glitchCharsList[Math.floor(Math.random() * glitchCharsList.length)];
-                    }
-                }
-                element.textContent = scrambled;
-                if (Math.random() < 0.15) {
-                    element.style.color = '#88ff88';
-                    element.style.textShadow = '0 0 8px #88ff88';
-                } else {
-                    element.style.color = '#00ff00';
-                    element.style.textShadow = '0 0 5px #00ff00';
-                }
-            }
-            intervalId = setInterval(updateText, 40);
-            updateText(); 
-        }
-
-
-        function displayPollingMessage(details = "") { 
-            let message = matrixMessages.polling[currentPollingMessageIndex];
-            currentPollingMessageIndex = (currentPollingMessageIndex + 1) % matrixMessages.polling.length;
-            scrambleTextEffect(messageDiv, `${message} ${details}`);
-        }
-        function displayStatusMessage(type, details = "") { 
-            scrambleTextEffect(messageDiv, `${matrixMessages[type] || type} ${details}`);
-        }
-        function displayFinalMessage(type, details = "") { 
-            finalMessageDiv.textContent = `${matrixMessages[type] || type} ${details}`; 
-            finalMessageDiv.classList.add('visible'); 
-        }
-        
+        // --- UI Reveal and Animations ---
         const elementsToReveal = [mainHeader, subHeaderMain, subHeaderSub, uploadForm, messageDiv];
-        let headerGlitchIntervalId = null; 
-        let initialRevealDone = false; 
+        let headerGlitchIntervalId = null;
+        let initialRevealDone = false;
 
         function initiateUIReveal() {
-            if (initialRevealDone) return; 
+            operatorLog("Attempting to initiate UI reveal...");
+            if (!mainContentWrapper) {
+                operatorLog("CRITICAL ERROR: mainContentWrapper element not found in initiateUIReveal!");
+                return;
+            }
+            operatorLog(`mainContentWrapper found. Initial computed opacity: ${getComputedStyle(mainContentWrapper).opacity}, display: ${getComputedStyle(mainContentWrapper).display}`);
+
+            if (initialRevealDone) {
+                operatorLog("UI reveal already marked as done, returning.");
+                return;
+            }
             operatorLog("Boot sequence initiated... UI elements will materialize shortly.");
-            mainContentWrapper.classList.add('visible'); 
 
-            const initialPageLoadDelay = 200; 
-            const staggerBetweenElements = 250;   
+            mainContentWrapper.classList.add('visible');
+            mainContentWrapper.style.opacity = '1';
+            operatorLog(`mainContentWrapper classList after adding 'visible': ${mainContentWrapper.classList}`);
+            operatorLog(`mainContentWrapper inline opacity set to: ${mainContentWrapper.style.opacity}`);
+            operatorLog(`mainContentWrapper computed opacity after adding 'visible' class and setting inline style: ${getComputedStyle(mainContentWrapper).opacity}`);
+            operatorLog(`mainContentWrapper computed display after adding 'visible' class: ${getComputedStyle(mainContentWrapper).display}`);
 
-            setTimeout(() => { 
+            const initialPageLoadDelay = 200;
+            const staggerBetweenElements = 250;
+
+            operatorLog("Checking elementsToReveal array contents:");
+            elementsToReveal.forEach((el, index) => {
+                if (el) {
+                    operatorLog(`elementsToReveal[${index}]: ${el.id || el.tagName}`);
+                } else {
+                    operatorLog(`elementsToReveal[${index}]: NULL or UNDEFINED`);
+                }
+            });
+
+            setTimeout(() => {
+                operatorLog("Outer setTimeout in initiateUIReveal triggered.");
                 elementsToReveal.forEach((el, index) => {
+                    if (!el) {
+                        operatorLog(`ERROR in outer setTimeout: Element at index ${index} in elementsToReveal is null or undefined.`);
+                        return;
+                    }
                     setTimeout(() => {
-                        if (el) { 
-                           el.classList.add('revealed');
-                           playSound('elementReveal'); 
-                           operatorLog(`Materializing: ${el.id || el.tagName}`);
-                           if (el.id === 'mainHeader' && !headerGlitchIntervalId) {
-                               setTimeout(startContinuousHeaderGlitch, 500); 
-                               mainHeader.classList.add('text-glitch-subtle'); 
-                           }
+                        operatorLog(`Inner setTimeout for element: ${el.id || el.tagName}`);
+                        el.classList.add('revealed');
+                        playSound('elementReveal');
+                        operatorLog(`Materializing: ${el.id || el.tagName}. Opacity: ${getComputedStyle(el).opacity}`);
+                        if (el.id === 'mainHeader' && !headerGlitchIntervalId) {
+                            if (typeof startContinuousHeaderGlitch === "function") setTimeout(startContinuousHeaderGlitch, 500);
+                            if(mainHeader) mainHeader.classList.add('text-glitch-subtle');
                         }
-                    }, index * staggerBetweenElements); 
+                    }, index * staggerBetweenElements);
                 });
-                initialRevealDone = true; 
+                initialRevealDone = true;
+                operatorLog("UI reveal sequence completed, initialRevealDone set to true.");
             }, initialPageLoadDelay);
         }
-        
+
         function startContinuousHeaderGlitch() {
-            if (headerGlitchIntervalId) clearInterval(headerGlitchIntervalId); 
+            if (headerGlitchIntervalId) clearInterval(headerGlitchIntervalId);
+            if (!mainHeader) return;
             headerGlitchIntervalId = setInterval(() => {
-                if (!mainHeader.classList.contains('revealed')) return; 
+                if (!mainHeader.classList.contains('revealed')) return;
                 mainHeader.classList.add('header-glow-glitching');
-                playSound('headerGlitch'); 
+                playSound('headerGlitch');
                 setTimeout(() => {
-                    mainHeader.classList.remove('header-glow-glitching');
-                }, 250); 
-            }, 4000 + Math.random() * 3000); 
+                    if(mainHeader) mainHeader.classList.remove('header-glow-glitching');
+                }, 250);
+            }, 4000 + Math.random() * 3000);
             operatorLog("Continuous header glow glitch activated.");
         }
+        
+        function displayMatrixTextEffect(element, text, delay = 30, glitchChance = 0.03, onComplete) {
+            if (!element || typeof text !== 'string') {
+                if(onComplete) onComplete();
+                return;
+            }
+            element.innerHTML = ''; // Clear previous content
+            let i = 0;
+            let displayedText = '';
 
-        function displayMatrixTextEffect(element, text, delay = 40, glitchChance = 0.08) { 
-            element.innerHTML = ''; 
-            let i = 0; 
-            function typeChar() { 
-                if (i < text.length) { 
-                    const charSpan = document.createElement('span'); 
-                    const originalChar = text.charAt(i); 
-                    if (Math.random() < glitchChance && originalChar !== ' ' && originalChar !== '\n') { 
-                        charSpan.classList.add('glitch-char'); 
-                        charSpan.textContent = glitchCharsList[Math.floor(Math.random() * glitchCharsList.length)]; 
-                        element.appendChild(charSpan); 
-                        playSound('textGlitch'); 
-                        setTimeout(() => { 
-                            charSpan.textContent = originalChar; 
-                            charSpan.classList.remove('glitch-char'); 
-                        }, 70 + Math.random() * 80); 
-                    } else { 
-                        charSpan.textContent = originalChar; 
-                        element.appendChild(charSpan); 
-                    } 
-                    i++; 
-                    setTimeout(typeChar, delay + (Math.random() * 15 - 7)); 
-                } else { 
-                    operatorLog("Transcript fully rendered on screen."); 
-                } 
-            } 
-            operatorLog("Initiating transcript display sequence..."); 
-            typeChar(); 
+            function typeCharacter() {
+                if (i < text.length) {
+                    const char = text[i];
+                    const isGlitch = Math.random() < glitchChance;
+
+                    if (isGlitch && char !== ' ' && char !== '\n') {
+                        const randomGlitchChar = glitchCharsList[Math.floor(Math.random() * glitchCharsList.length)];
+                        element.innerHTML = displayedText + `<span style="color: #88ff88;">${randomGlitchChar}</span>`; // Brighter green for glitch
+                        setTimeout(() => {
+                            displayedText += char;
+                            element.innerHTML = displayedText;
+                            i++;
+                            setTimeout(typeCharacter, delay / 2); // Faster reveal after glitch
+                        }, delay * 0.6); // Glitch duration
+                    } else {
+                        displayedText += char;
+                        element.innerHTML = displayedText; // Use innerHTML to render potential <br> from newlines
+                        i++;
+                        setTimeout(typeCharacter, delay);
+                    }
+                } else {
+                    if (onComplete) onComplete();
+                }
+            }
+            typeCharacter();
         }
 
-        function resetUIAndReveal(isInitialLoad = false) { 
-            mainContentWrapper.classList.remove('content-fade-out');
-            mainContentWrapper.classList.remove('custom-exit-animation');
+        function resetUIAndReveal(isInitialLoad = false) {
+            operatorLog(`Resetting UI. isInitialLoad: ${isInitialLoad}`);
+            if(!mainContentWrapper) {
+                operatorLog("CRITICAL ERROR: mainContentWrapper not found in resetUIAndReveal!");
+                return;
+            }
+            mainContentWrapper.classList.remove('content-fade-out', 'custom-exit-animation');
             mainContentWrapper.style.animation = '';
             mainContentWrapper.style.transform = 'scale(1)';
             mainContentWrapper.style.pointerEvents = 'auto';
-            mainContentWrapper.style.display = 'flex'; 
+            mainContentWrapper.style.display = 'flex';
+            mainContentWrapper.style.opacity = '0';
 
-            transcriptDiv.classList.remove('visible');
-            transcriptDiv.style.display = 'none'; 
-            finalMessageDiv.classList.remove('visible'); 
-            finalMessageDiv.textContent = ''; 
-            
-            transcriptTextParagraph.innerHTML = ''; 
-            
-            if (!isInitialLoad) {
-                 elementsToReveal.forEach(el => { 
-                    el.classList.remove('revealed'); // Ensure animation can replay
-                    el.style.animation = ''; // Clear any existing animation
-                    el.style.opacity = '0'; // Reset opacity for animation
-                    el.style.transform = 'translateY(20px)'; // Reset transform for animation
-                });
-            }
-            mainHeader.textContent = "The Matrix Has You...";
-            subHeaderMain.textContent = "Select an MP3 Recording to upload";
-            subHeaderSub.textContent = "Choose the Red pill or Blue pill and I'll show you how deep the rabbit hole goes.";
-            messageDiv.textContent = "Follow the white rabbit, Neo.";
+            if(transcriptDiv) { transcriptDiv.classList.remove('visible'); transcriptDiv.style.display = 'none'; }
+            if(finalMessageDiv) { finalMessageDiv.classList.remove('visible'); finalMessageDiv.textContent = ''; }
+            if(transcriptTextParagraph) transcriptTextParagraph.innerHTML = '';
 
-            if (headerGlitchIntervalId) { 
-                clearInterval(headerGlitchIntervalId);
-                headerGlitchIntervalId = null;
-                mainHeader.innerHTML = "The Matrix Has You..."; 
-                mainHeader.classList.remove('text-glitch-subtle');
-            }
+            elementsToReveal.forEach(el => {
+                if(el) {
+                    el.classList.remove('revealed');
+                    el.style.animation = '';
+                    el.style.opacity = '0';
+                    el.style.transform = 'translateY(20px)';
+                }
+            });
 
-            stopVisualizer(); 
-            matrixRainSpeed = 33; 
-            matrixRainDensityFactor = 0.05; 
-            updateMatrixAnimation();
-            
-            operatorLog("System reset. Awaiting new input or completing current operation.");
-            
-            if (!isInitialLoad) {
-                initialRevealDone = false; 
-                mainContentWrapper.classList.add('visible'); 
-                initiateUIReveal(); 
-            }
+            if(mainHeader) mainHeader.textContent = "The Matrix Has You...";
+            if(subHeaderMain) subHeaderMain.textContent = "Select an MP3 Recording to upload";
+            if(subHeaderSub) subHeaderSub.textContent = "Choose the Red pill or Blue pill and I'll show you how deep the rabbit hole goes.";
+            if(messageDiv) messageDiv.textContent = "Follow the white rabbit, Neo.";
+
+            if (headerGlitchIntervalId) { clearInterval(headerGlitchIntervalId); headerGlitchIntervalId = null; if(mainHeader) mainHeader.classList.remove('text-glitch-subtle');}
+            stopVisualizer();
+            matrixRainSpeed = 33; matrixRainDensityFactor = 0.05;
+            if (typeof updateMatrixAnimation === "function") updateMatrixAnimation(); else operatorLog("ERROR: updateMatrixAnimation not defined in reset.");
+            operatorLog("System reset complete. UI elements should be hidden, ready for reveal.");
         }
 
-        function arrayBufferToBinaryString(arrayBuffer) { 
-            let binaryString = ''; 
-            const bytes = new Uint8Array(arrayBuffer); 
-            for (let i = 0; i < bytes.byteLength; i++) { 
-                binaryString += String.fromCharCode(bytes[i]); 
-            } 
-            return binaryString; 
-        }
-        async function fetchTranscript(s3KeyBase) { 
-            const fetchTranscriptUrl = `${API_BASE_URL}/transcripts/${encodeURIComponent(s3KeyBase)}`; 
-            try { 
-                const response = await fetch(fetchTranscriptUrl); 
-                if (response.status === 404) return null; 
-                if (!response.ok) { 
-                    const errorDetails = await response.text(); 
-                    throw new Error(`Status: ${response.status} - ${errorDetails}`); 
-                } 
-                return await response.text(); 
-            } catch (error) { 
-                operatorLog(`ERROR fetching transcript: ${error.message}`); 
-                console.error("Error fetching transcript:", error); 
-                throw error; 
-            } 
-        }
+        // --- File Handling and API Interaction ---
+        function arrayBufferToBinaryString(arrayBuffer) { let binaryString = ''; const bytes = new Uint8Array(arrayBuffer); for (let i = 0; i < bytes.byteLength; i++) { binaryString += String.fromCharCode(bytes[i]); } return binaryString; }
         
-        async function pollForTranscript(s3KeyBase, timeout = 180000) { 
+        async function fetchTranscript(s3KeyBase) {
+            const transcriptUrl = `${API_BASE_URL}/transcripts/${s3KeyBase}`;
+            operatorLog(`Fetching transcript from: ${transcriptUrl}`);
+            try {
+                const response = await fetch(transcriptUrl, { method: 'GET' });
+                operatorLog(`Fetch transcript response status: ${response.status}`);
+                if (response.ok) {
+                    const transcriptText = await response.text();
+                    operatorLog("Transcript fetched successfully.");
+                    return transcriptText;
+                } else if (response.status === 404) {
+                    operatorLog("Transcript not found (404), continuing to poll.");
+                    return null; // Indicate not found, so polling continues
+                } else {
+                    const errorText = await response.text();
+                    operatorLog(`Error fetching transcript: ${response.status} - ${errorText}`);
+                    return null;
+                }
+            } catch (error) {
+                operatorLog(`Network or other error fetching transcript: ${error.message || error}`);
+                return null; // Continue polling on network errors
+            }
+        }
+
+        async function pollForTranscript(s3KeyBase, timeout = 180000) {
+            operatorLog(`Polling for transcript: ${s3KeyBase} (Max timeout: ${timeout/1000}s)`);
             const startTime = Date.now();
-            const interval = 5000; 
-            let pollCount = 0; 
-            operatorLog(`Polling for transcript: ${s3KeyBase}`);
-            matrixRainSpeed = 18; 
-            matrixRainDensityFactor = 0.1; 
-            updateMatrixAnimation();
+            const interval = 5000; // Poll every 5 seconds
+            let pollCount = 0;
+            matrixRainSpeed = 18; // Visual feedback for polling
+            matrixRainDensityFactor = 0.1;
+            if (typeof updateMatrixAnimation === "function") updateMatrixAnimation();
 
             while (Date.now() - startTime < timeout) {
-                displayPollingMessage(`(Cycle ${++pollCount})`); 
+                displayPollingMessage(`(Cycle ${++pollCount})`);
+                playSound('processingTick'); // Play sound for each polling attempt
                 try {
                     const transcriptText = await fetchTranscript(s3KeyBase);
                     if (transcriptText !== null) {
-                        operatorLog("Transcript located.");
-                        matrixRainSpeed = 33; 
+                        operatorLog("Polling successful: Transcript located.");
+                        matrixRainSpeed = 33;
                         matrixRainDensityFactor = 0.05;
-                        updateMatrixAnimation();
+                        if (typeof updateMatrixAnimation === "function") updateMatrixAnimation();
                         return transcriptText;
                     }
+                    operatorLog(`Polling cycle ${pollCount}: Transcript not yet available (or non-critical fetch error).`);
                 } catch (pollError) {
-                    operatorLog(`Polling attempt ${pollCount} failed: ${pollError.message}`);
-                    console.warn("Polling fetch error, will retry:", pollError);
+                    operatorLog(`Error during pollForTranscript loop (cycle ${pollCount}): ${pollError.message}`);
                 }
                 await new Promise(resolve => setTimeout(resolve, interval));
             }
-            operatorLog("Polling timed out.");
-            matrixRainSpeed = 33; 
+            operatorLog("Polling timed out for transcript.");
+            matrixRainSpeed = 33; // Reset visual feedback
             matrixRainDensityFactor = 0.05;
-            updateMatrixAnimation();
+            if (typeof updateMatrixAnimation === "function") updateMatrixAnimation();
             playSound('error');
             throw new Error(matrixMessages.timeout);
         }
 
+
+        // --- Event Listeners ---
         if (uploadForm) {
             uploadForm.addEventListener("submit", async (e) => {
                 e.preventDefault();
+                operatorLog("Upload form submitted (Red Pill).");
+                await initializeAudioOnFirstInteraction();
                 playSound('uploadClick');
-                operatorLog("Red Pill taken. Initiating upload sequence...");
 
-                if (API_BASE_URL === "YOUR_API_BASE_URL" || !API_BASE_URL) { 
+                if (API_BASE_URL === "YOUR_API_ENDPOINT_URL" || !API_BASE_URL || API_BASE_URL.includes("iniyq23992") === false) {
+                    operatorLog("ERROR: API_BASE_URL is not configured correctly with your actual endpoint!");
                     displayStatusMessage("errorGeneric", "CRITICAL: API Endpoint Not Configured!");
-                    playSound('error'); 
-                    operatorLog("ERROR: API_BASE_URL not set."); 
+                    playSound('error');
+                    return;
+                }
+                operatorLog(`API_BASE_URL is: ${API_BASE_URL}`);
+
+                if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+                    operatorLog("No file selected or fileInput element not found.");
+                    displayStatusMessage("No file chosen, Agent.");
+                    playSound('error');
                     return;
                 }
 
-                if (fileInput.files.length > 0) { 
-                    const selectedFile = fileInput.files[0];
-                    operatorLog(`File selected: ${selectedFile.name}, Type: ${selectedFile.type}, Size: ${selectedFile.size} bytes`);
-                    displayStatusMessage("preparing", `(${selectedFile.name})`);
-                    try {
-                        const fileContent = await selectedFile.arrayBuffer();
-                        const base64Content = btoa(arrayBufferToBinaryString(fileContent));
-                        const uploadUrl = `${API_BASE_URL}/upload`;
-                        operatorLog(`Transmitting to: ${uploadUrl}`);
-                        displayStatusMessage("uploading");
-                        const response = await fetch(uploadUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fileName: selectedFile.name, fileType: selectedFile.type, fileContent: base64Content }), });
-                        
-                        const responseText = await response.text(); 
-                        if (response.ok) {
-                            const data = JSON.parse(responseText);
-                            operatorLog(`Upload ACK: ${JSON.stringify(data)}`);
-                            console.log("Upload Response:", data);
-                            displayStatusMessage("uploadConfirmed");
-                            playSound('uploadSuccess');
-                            const baseFileName = selectedFile.name.split('.').slice(0, -1).join('.');
-                            const transcriptText = await pollForTranscript(baseFileName);
-                            
-                            playSound('pageTransition');
-                            mainContentWrapper.classList.remove('content-fade-out'); 
-                            mainContentWrapper.classList.add('custom-exit-animation'); 
-                            operatorLog("Main interface zooming and fading out...");
-                            if (headerGlitchIntervalId) clearInterval(headerGlitchIntervalId); 
-                            mainHeader.classList.remove('text-glitch-subtle');
+                const selectedFile = fileInput.files[0];
+                operatorLog(`File selected: ${selectedFile.name}, Type: ${selectedFile.type}, Size: ${selectedFile.size} bytes`);
+                displayStatusMessage("preparing", `(${selectedFile.name})`);
 
+                try {
+                    operatorLog("Attempting to read file content as ArrayBuffer...");
+                    const fileContentBuffer = await selectedFile.arrayBuffer();
+                    operatorLog("File content read successfully. Converting to Base64...");
+                    const base64Content = btoa(arrayBufferToBinaryString(fileContentBuffer));
+                    operatorLog(`Base64 conversion complete. Content length: ${base64Content.length}`);
 
-                            setTimeout(() => { 
-                                mainContentWrapper.style.display = 'none'; 
-                                transcriptDiv.style.display = 'block';
-                                void transcriptDiv.offsetWidth; 
-                                transcriptDiv.classList.add('visible');
-                                operatorLog("Transcript display initiated.");
-                                setTimeout(() => { 
-                                   document.querySelector('#transcript h2').textContent = "Signal Decryption:";
-                                   playSound('transcriptReady');
-                                   displayMatrixTextEffect(transcriptTextParagraph, transcriptText); 
-                                   displayFinalMessage("success"); 
-                                   fileInput.value = ''; 
-                                }, 1000); 
-                            }, 800); 
+                    const uploadUrl = `${API_BASE_URL}/upload`;
+                    const payload = {
+                        fileName: selectedFile.name,
+                        fileType: selectedFile.type,
+                        fileContent: base64Content
+                    };
+                    operatorLog(`Transmitting to: ${uploadUrl}. Payload size (approx Base64 content length): ${payload.fileContent.length}`);
+                    displayStatusMessage("uploading");
+                    
+                    const response = await fetch(uploadUrl, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload)
+                    });
+                    operatorLog(`Upload API response status: ${response.status}`);
 
-                        } else {
-                            let errorMessage = responseText;
-                            try { errorMessage = JSON.parse(responseText).error || responseText; } catch {}
-                            operatorLog(`Upload FAILED. Status: ${response.status}, Message: ${errorMessage}`);
-                            displayStatusMessage("errorGeneric", `Status: ${response.status} - ${errorMessage}`);
-                            playSound('error'); 
-                            resetUIAndReveal(false); 
+                    const responseText = await response.text();
+                    operatorLog(`Raw response text from /upload: ${responseText.substring(0,200)}...`);
+
+                    if (response.ok) {
+                        const data = JSON.parse(responseText);
+                        operatorLog(`Upload ACK (parsed): ${JSON.stringify(data)}`);
+                        displayStatusMessage("uploadConfirmed");
+                        playSound('uploadSuccess');
+
+                        const baseFileName = selectedFile.name.split('.').slice(0, -1).join('');
+                        operatorLog(`Base filename for polling: ${baseFileName}`);
+                        const transcriptText = await pollForTranscript(baseFileName);
+                        operatorLog(`Transcript received: ${transcriptText ? transcriptText.substring(0,100) + "..." : "No transcript text"}`);
+
+                        playSound('pageTransition');
+                        if(mainContentWrapper) {
+                            mainContentWrapper.classList.remove('content-fade-out');
+                            mainContentWrapper.classList.add('custom-exit-animation');
                         }
-                    } catch (error) {
-                        operatorLog(`Upload CRITICAL ERROR: ${error.message}`);
-                        displayStatusMessage("errorGeneric", error.message || String(error));
-                        playSound('error'); 
-                        resetUIAndReveal(false); 
+                        operatorLog("Main interface zooming and fading out...");
+                        if (headerGlitchIntervalId) clearInterval(headerGlitchIntervalId);
+                        if(mainHeader) mainHeader.classList.remove('text-glitch-subtle');
+
+                        setTimeout(() => {
+                            if(mainContentWrapper) mainContentWrapper.style.display = 'none';
+                            if(transcriptDiv) {
+                                transcriptDiv.style.display = 'block';
+                                void transcriptDiv.offsetWidth; // Trigger reflow for transition
+                                transcriptDiv.classList.add('visible');
+                            }
+                            operatorLog("Transcript display initiated.");
+                            setTimeout(() => {
+                               const transcriptHeader = document.querySelector('#transcript h2');
+                               if(transcriptHeader) transcriptHeader.textContent = "Signal Decryption:";
+                               playSound('transcriptReady'); // Sound for transcript section appearing
+                               if(transcriptTextParagraph) {
+                                   displayMatrixTextEffect(transcriptTextParagraph, transcriptText || "Transcript data not available.", 30, 0.03, () => {
+                                       operatorLog("Transcript typewriter effect complete.");
+                                   });
+                               }
+                               displayFinalMessage("success");
+                               if(fileInput) fileInput.value = ''; // Clear file input
+                            }, 1000); // Delay for transcript section to be ready
+                        }, 800); // Delay for main content exit animation
+
+                    } else {
+                        let errorMessage = "Unknown upload error";
+                        try {
+                            const errorData = JSON.parse(responseText);
+                            errorMessage = errorData.error || errorData.message || response.statusText || responseText;
+                        } catch (parseError) {
+                            operatorLog("Could not parse error response as JSON.");
+                            errorMessage = response.statusText || responseText;
+                        }
+                        operatorLog(`Upload FAILED. Status: ${response.status}, Message: ${errorMessage}`);
+                        displayStatusMessage("errorGeneric", `Status: ${response.status} - ${errorMessage}`);
+                        playSound('error');
+                        if(typeof resetUIAndReveal === "function") resetUIAndReveal(false);
                     }
-                } else { 
-                    operatorLog("Upload attempt without file selection.");
-                    displayStatusMessage("No file chosen, Agent."); 
-                    playSound('error'); 
+                } catch (error) {
+                    operatorLog(`Upload CRITICAL ERROR: ${error.message || error}`);
+                    console.error("Upload process error:", error);
+                    displayStatusMessage("errorGeneric", error.message || String(error));
+                    playSound('error');
+                    if(typeof resetUIAndReveal === "function") resetUIAndReveal(false);
                 }
             });
         }
 
         if (bluePillButton) {
-            bluePillButton.addEventListener("click", () => {
-                playSound('error'); 
+            bluePillButton.addEventListener("click", async () => {
+                operatorLog("Blue Pill button click event started.");
+                await initializeAudioOnFirstInteraction();
+                playSound('error');
                 operatorLog("Blue Pill taken. User chose blissful ignorance.");
+
                 if (headerGlitchIntervalId) clearInterval(headerGlitchIntervalId);
-                mainHeader.classList.remove('text-glitch-subtle');
-                clearInterval(matrixInterval); 
-                document.body.innerHTML = `
-                    <div style="
-                        position: fixed;
-                        top: 0; left: 0;
-                        width: 100vw; height: 100vh;
-                        background-color: #0000aa; color: #fff;
-                        font-family: 'Courier New', monospace;
-                        box-sizing: border-box;
-                        margin: 0; padding: 60px 40px 40px 60px;
-                        z-index: 99999;
-                        line-height: 1.7;
-                        font-size: 20px;
-                        overflow: auto; 
-                        text-align: left;
-                        display: flex;
-                        flex-direction: column;
-                        justify-content: center;
-                    ">
-                        <p style="margin-bottom: 2em;">:( A problem has been detected and Matrix has been shut down to prevent damage to your Brain.</p>
-                        <p style="margin-bottom: 1.5em;">The problem seems to be caused by the following file: <b>NEOREVN.SYS</b></p>
-                        <p style="margin-bottom: 1.5em;">PAGE_FAULT_IN_NONPAGED_AREA</p>
-                        <p style="margin-bottom: 1.5em;">
-                            If this is the first time you'veseen this stop error screen,<br>
-                            restart your Brain. If this screen appears again, follow these steps:
-                        </p>
-                        <p style="margin-bottom: 1.5em;">
-                            Check to make sure any new hardware or software is properly docked in and powered on.<br>
-                            If this is a new installation, ask your operator for any system updates you might need.
-                        </p>
-                        <p style="margin-bottom: 1.5em;">
-                            If problems continue, disable or remove any newly installed hardware or software.<br>
-                            Disable MetaCortex memory options such as caching or shadowing.<br>
-                            If you need to use Safe Mode to remove or disable components, restart your brain,<br>
-                            press on your temple, and then select Safe Mode - Consult with the Oracle if needed.
-                        </p>
-                        <p style="margin-bottom: 1em;">Technical Credits:</p>
-                        <pre style="font-size: 1em; margin-bottom: 1.5em; white-space: pre-wrap; word-break: break-all;">
-*** STOP: 0x00000050 (0xFFFFF80000000000, 0x0000000000000001, 0xFFFFF80001004054, 0x0000000000000000)
-*** NEOREVN.SYS - Address FFFFF80001004054 base at FFFFF80000000000, DateStamp 3e6e4e01
-                        </pre>
-                    </div>
-                `;
-                document.documentElement.style.overflow = "hidden"; 
-                document.body.style.overflow = "hidden"; 
-                document.body.style.margin = "0";
-                document.body.style.padding = "0";
+                if (mainHeader) mainHeader.classList.remove('text-glitch-subtle');
+                if (matrixInterval) clearInterval(matrixInterval);
+
+                if (document.body) {
+                    document.body.innerHTML = `
+                        <div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #0000aa; color: #fff; font-family: 'Courier New', monospace; box-sizing: border-box; margin: 0; padding: 60px 40px 40px 60px; z-index: 99999; line-height: 1.7; font-size: 20px; overflow: auto; text-align: left; display: flex; flex-direction: column; justify-content: center;">
+                            <p style="margin-bottom: 2em;">:( A problem has been detected and Matrix has been shut down to prevent damage to your Brain.</p>
+                            <p style="margin-bottom: 1.5em;">The problem seems to be caused by the following file: <b>NEOREVN.SYS</b></p>
+                            <p style="margin-bottom: 1.5em;">PAGE_FAULT_IN_NONPAGED_AREA</p>
+                            <p style="margin-bottom: 1.5em;">If this is the first time you'veseen this stop error screen,<br>restart your Brain. If this screen appears again, follow these steps:</p>
+                            <p style="margin-bottom: 1.5em;">Check to make sure any new hardware or software is properly docked in and powered on.<br>If this is a new installation, ask your operator for any system updates you might need.</p>
+                            <p style="margin-bottom: 1.5em;">If problems continue, disable or remove any newly installed hardware or software.<br>Disable MetaCortex memory options such as caching or shadowing.<br>If you need to use Safe Mode to remove or disable components, restart your brain,<br>press on your temple, and then select Safe Mode - Consult with the Oracle if needed.</p>
+                            <p style="margin-bottom: 1em;">Technical Credits:</p>
+                            <pre style="font-size: 1em; margin-bottom: 1.5em; white-space: pre-wrap; word-break: break-all;">*** STOP: 0x00000050 (0xFFFFF80000000000, 0x0000000000000001, 0xFFFFF80001004054, 0x0000000000000000)\n*** NEOREVN.SYS - Address FFFFF80001004054 base at FFFFF80000000000, DateStamp 3e6e4e01</pre>
+                        </div>`;
+                    if(document.documentElement) document.documentElement.style.overflow = "hidden";
+                    const newBody = document.querySelector('body');
+                    if (newBody) {
+                        newBody.style.overflow = "hidden";
+                        newBody.style.margin = "0";
+                        newBody.style.padding = "0";
+                    }
+                } else {
+                    operatorLog("ERROR: document.body not found for BSOD display.");
+                }
+                operatorLog("BSOD page should be displayed now.");
             });
         }
 
+        // --- Page Load Initialization ---
         document.addEventListener('DOMContentLoaded', () => {
-            operatorLog("System Initialized. DOM ready. Awaiting full load...");
-            
-            if (typeof Tone !== 'undefined' && Tone.start) {
-                Tone.start().then(() => {
-                    operatorLog("Audio context started by Tone.js.");
-                    resetUIAndReveal(true); 
-                    initiateUIReveal();     
-                }).catch(err => {
-                    operatorLog("Error starting Tone.js audio context: " + err);
+            try {
+                operatorLog("System Initialized. DOM ready. Awaiting full load...");
+
+                if (document.body) {
+                    document.body.addEventListener('click', initializeAudioOnFirstInteraction, { once: true });
+                } else {
+                    operatorLog("ERROR: document.body not found at DOMContentLoaded for click listener!");
+                }
+
+                if (typeof resetUIAndReveal === "function" && typeof initiateUIReveal === "function") {
+                    operatorLog("Calling resetUIAndReveal(true)...");
                     resetUIAndReveal(true);
-                    initiateUIReveal(); 
-                });
-            } else {
-                operatorLog("Tone.js not fully loaded or available. Proceeding without audio confirmation.");
-                resetUIAndReveal(true);
-                initiateUIReveal();
+                    operatorLog("Calling initiateUIReveal()...");
+                    initiateUIReveal();
+                    operatorLog("initiateUIReveal() call completed.");
+                } else {
+                    operatorLog("CRITICAL ERROR: UI reveal functions (resetUIAndReveal or initiateUIReveal) not defined!");
+                }
+                operatorLog("DOMContentLoaded handler finished successfully.");
+            } catch (error) {
+                operatorLog("CRITICAL ERROR in DOMContentLoaded handler: " + (error.message || error));
+                console.error("DOMContentLoaded Error:", error);
+                if (document.body) { // Attempt to show error on screen
+                    document.body.innerHTML = `<div style="color:red; background:black; padding:20px; font-size:18px; font-family:monospace; position:fixed; top:0; left:0; width:100%; height:100%; z-index:10000;">FATAL ERROR DURING PAGE LOAD. Check console. Message: ${error.message || 'Unknown error'}</div>`;
+                }
             }
         });
     </script>
