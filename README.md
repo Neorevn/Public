@@ -31,8 +31,6 @@ Here are some of the technologies I'm working with or learning:
 </p>
 🚀 My Projects
 
-This is a great place to showcase some of your key projects. You can link to repositories or live demos.
-
 [Enter The Matrix](https://github.com/Neorevn/Public/tree/master/ProjectMatrix): An HTML frontend supported by AWS backend that takes a user’s .mp3 file recording and transcribes it back as text.
 
 [Cyber XO Extreme](https://github.com/Neorevn/Public/tree/master/Cyber%20XO%20Extreme): A Python Tic Tac Toe game.
@@ -48,9 +46,7 @@ This is a great place to showcase some of your key projects. You can link to rep
 </p>
 🏆 Certifications & Achievements
 
-This is a great section to show off any certifications or courses you've completed!
-
-Certified DevSecOps Professional
+Certified DevSecOps Professional | Expected finish Jan 2026
 
 AWS Cloud Practitioner
 
