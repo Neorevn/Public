@@ -48,7 +48,9 @@ Here are some of the technologies I'm working with or learning:
 
 Certified DevSecOps Professional | Expected finish Jan 2026
 
-AWS Cloud Practitioner
+Certified AWS Cloud Practitioner | Amazon Accademy
+
+IT Support Specilist | 10 Year veteran
 
 📫 Connect With Me
 
