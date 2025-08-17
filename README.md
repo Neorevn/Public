@@ -31,13 +31,13 @@ Here are some of the technologies I'm working with or learning:
 </p>
 🚀 My Projects
 
-This is a great place to showcase some of your key projects. You can link to repositories or live demos.
-
 [Enter The Matrix](https://github.com/Neorevn/Public/tree/master/ProjectMatrix): An HTML frontend supported by AWS backend that takes a user’s .mp3 file recording and transcribes it back as text.
 
 [Cyber XO Extreme](https://github.com/Neorevn/Public/tree/master/Cyber%20XO%20Extreme): A Python Tic Tac Toe game.
 
-[Ask Awway](https://github.com/Neorevn/Public/tree/master/AskAway): An offline HTML page of a Trivia and a few hundreds of questions and difficulties
+[Ask Awway](https://github.com/Neorevn/Public/tree/master/AskAway): An offline HTML page of a Trivia and a few hundreds of questions and difficulties.
+
+[Daily Quote Discord Bot](https://github.com/Neorevn/Public/tree/master/Discord%20Bots): A Discord Bot that sends a random quote at a specific hour.
 
 📈 GitHub Stats
 
@@ -46,11 +46,11 @@ This is a great place to showcase some of your key projects. You can link to rep
 </p>
 🏆 Certifications & Achievements
 
-This is a great section to show off any certifications or courses you've completed!
+Certified DevSecOps Professional | Expected finish Jan 2026
 
-Certified DevSecOps Professional
+Certified AWS Cloud Practitioner | Amazon Accademy
 
-AWS Cloud Practitioner
+IT Support Specilist | 10 Year veteran
 
 📫 Connect With Me
 
