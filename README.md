@@ -37,7 +37,9 @@ This is a great place to showcase some of your key projects. You can link to rep
 
 [Cyber XO Extreme](https://github.com/Neorevn/Public/tree/master/Cyber%20XO%20Extreme): A Python Tic Tac Toe game.
 
-[Ask Awway](https://github.com/Neorevn/Public/tree/master/AskAway): An offline HTML page of a Trivia and a few hundreds of questions and difficulties
+[Ask Awway](https://github.com/Neorevn/Public/tree/master/AskAway): An offline HTML page of a Trivia and a few hundreds of questions and difficulties.
+
+[Daily Quote Discord Bot](https://github.com/Neorevn/Public/tree/master/Discord%20Bots): A Discord Bot that sends a random quote at a specific hour.
 
 📈 GitHub Stats
 
