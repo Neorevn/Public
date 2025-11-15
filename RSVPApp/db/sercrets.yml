@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mongodb-secret
+  namespace: rsvp-app
+stringData:
+  MONGO_INITDB_ROOT_USERNAME: "rsvpadm"
+  MONGO_INITDB_ROOT_PASSWORD: "hodi"
+  MONGODB_USER: "rsvpadm"
+  MONGODB_PASSWORD: "hodi"

@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rsvp
+  namespace: rsvp-app
+  labels:
+    app: rsvp
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: rsvp
+  template:
+    metadata:
+      labels:
+        app: rsvp
+    spec:
+      containers:
+      - name: rsvp
+        image: teamcloudyuga/rsvpapp
+        ports:
+        - containerPort: 5000
+        env:
+        - name: MONGODB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: rsvp-config
+              key: MONGODB_HOST
+        - name: MONGODB_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: rsvp-config
+              key: MONGODB_DATABASE
+        - name: MONGODB_USER
+          valueFrom:
+            secretKeyRef:
+              name: mongodb-secret
+              key: MONGODB_USER
+        - name: MONGODB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mongodb-secret
+              key: MONGODB_PASSWORD
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 5000
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 5000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "250m"

@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: rsvp
+  namespace: rsvp-app
+  labels:
+    app: rsvp
+spec:
+  type: ClusterIP
+  selector:
+    app: rsvp
+  ports:
+  - port: 5000
+    targetPort: 5000

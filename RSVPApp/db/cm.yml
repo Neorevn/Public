@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rsvp-config
+  namespace: rsvp-app
+data:
+  MONGODB_HOST: "mongodb.rsvp-app.svc.cluster.local"
+  MONGODB_DATABASE: "rsvp"
