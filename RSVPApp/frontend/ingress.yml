@@ -15,4 +15,4 @@ spec:
               service:
                 name: rsvp
                 port:
-                  number: 5000 # The Service port
+                  number: 5000
