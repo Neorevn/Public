@@ -6,9 +6,10 @@ metadata:
   labels:
     app: rsvp
 spec:
-  type: ClusterIP
+  type: NodePort
   selector:
     app: rsvp
   ports:
   - port: 5000
     targetPort: 5000
+    nodePort: 30080
